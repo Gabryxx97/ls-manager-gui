@@ -1,43 +1,37 @@
 // src/authProvider.ts
 import { AuthProvider } from "react-admin";
+import { apiUrl, httpRequest } from "./http-client";
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL;
+type AuthUser = {
+  id: number | string;
+  username: string;
+  role: string;
+  name?: string;
+  surname?: string;
+  companyName?: string;
+};
 
 const authProvider: AuthProvider = {
   login: async ({ username, password }) => {
-    const res = await fetch(`${BACKEND}/api/login`, {
+    await httpRequest(`${apiUrl}/login`, {
       method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
-    });
-    if (res.status === 401) {
-      const data = await res.json();
-      throw new Error(data.message || "Credenziali non valide");
-    }
-    if (!res.ok) {
-      throw new Error(res.statusText || "Errore di autenticazione");
-    }
-    const meRes = await fetch(`${BACKEND}/api/me`, { credentials: "include" });
-    if (!meRes.ok) {
-      throw new Error("Impossibile recuperare il profilo utente");
-    }
-    const user = await meRes.json();
+    }, false);
+    const { json: user } = await httpRequest<AuthUser>(`${apiUrl}/me`);
     localStorage.setItem("auth", JSON.stringify(user));
     localStorage.setItem("role", user.role);
     localStorage.setItem(
       "fullName",
-      user.name ? `${user.name} ${user.surname}` : user.companyName,
+      user.name ? `${user.name} ${user.surname ?? ""}`.trim() : (user.companyName ?? user.username),
     );
     return Promise.resolve();
   },
   logout: async () => {
-    await fetch(`${BACKEND}/api/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
-    localStorage.clear();
-    return Promise.resolve();
+    try {
+      await httpRequest(`${apiUrl}/logout`, { method: "POST" }, false);
+    } finally {
+      localStorage.clear();
+    }
   },
 
   checkAuth: () => {
@@ -46,7 +40,7 @@ const authProvider: AuthProvider = {
   },
 
   checkError: (error) => {
-    if (error.status === 401 || error.status === 403) {
+    if (error.status === 401) {
       localStorage.clear();
       return Promise.reject();
     }

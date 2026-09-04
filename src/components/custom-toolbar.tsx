@@ -1,10 +1,27 @@
-import { SaveButton, Toolbar } from "react-admin";
+import CloseIcon from "@mui/icons-material/Close";
+import {
+  Button,
+  SaveButton,
+  Toolbar,
+  useRedirect,
+  useResourceContext,
+} from "react-admin";
+import { useFormState } from "react-hook-form";
 
-export const CustomToolbar = () => {
+export const CustomToolbar = ({ disableInvalid = false }: { disableInvalid?: boolean }) => {
+  const redirect = useRedirect();
+  const resource = useResourceContext();
+  const { isValid } = useFormState();
+
   return (
-    <Toolbar>
-      <div style={{ flexGrow: 1 }} />
-      <SaveButton />
+    <Toolbar sx={{ gap: 1 }}>
+      <SaveButton label="Salva" disabled={disableInvalid && !isValid} />
+      <Button
+        label="Annulla"
+        startIcon={<CloseIcon />}
+        onClick={() => redirect("list", resource)}
+        variant="outlined"
+      />
     </Toolbar>
   );
 };

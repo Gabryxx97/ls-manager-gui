@@ -15,22 +15,31 @@ export const CustomEmpty = ({
 }: CustomEmptyProps) => {
   return (
     <Box
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
       sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
         width: "100%",
+        minHeight: 280,
+        px: 2,
+        py: 4,
+        textAlign: "center",
+        bgcolor: "background.paper",
+        border: "1px dashed",
+        borderColor: "divider",
+        borderRadius: 2,
       }}
     >
-      <InboxIcon style={{ fontSize: 200 }} color="action" />
-      <Typography variant="h4" paragraph>
+      <InboxIcon sx={{ fontSize: 64, mb: 2 }} color="action" aria-hidden="true" />
+      <Typography component="p" variant="h2" sx={{ mb: 1 }}>
         {resourceGen === "m"
           ? `Nessun ${resourceName}`
           : `Nessuna ${resourceName}`}
       </Typography>
       {isCreate && (
         <>
-          <Typography variant="body1" paragraph>
+          <Typography component="p" variant="body1" sx={{ mb: 2 }}>
             {resourceGen === "m"
               ? "Vuoi aggiungerne uno?"
               : "Vuoi aggiungerne una?"}

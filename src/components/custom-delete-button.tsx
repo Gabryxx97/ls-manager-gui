@@ -47,11 +47,16 @@ export const CustomDeleteButton = ({
           handleCloseDeletePopup();
           refresh();
         },
-        onError: () => {
-          notify("Errore durante la cancellazione dell'elemento", {
+        onError: (error) => {
+          notify(
+            error instanceof Error
+              ? error.message
+              : "Errore durante la cancellazione dell'elemento",
+            {
             type: "error",
             autoHideDuration: 3000,
-          });
+            },
+          );
         },
       }
     );
@@ -77,7 +82,9 @@ export const CustomDeleteButton = ({
         onClose={handleCloseDeletePopup}
         onConfirm={deleteRecord}
         content={
-          <Typography>Sei sicuro di voler eliminare l'elemento?</Typography>
+          <Typography>
+            Questa operazione non può essere annullata. Vuoi continuare?
+          </Typography>
         }
       />
     </>

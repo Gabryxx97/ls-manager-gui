@@ -1,288 +1,107 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-  GET_LIST,
-  GET_ONE,
-  GET_MANY,
-  GET_MANY_REFERENCE,
-  CREATE,
-  UPDATE,
-  DELETE,
-  DataProvider,
-  Identifier,
-} from "react-admin";
+import { DataProvider, Identifier } from "react-admin";
+import { apiUrl, httpRequest, JsonResponse } from "./http-client";
 
-const apiUrl = import.meta.env.VITE_BACKEND_URL + "/api";
-
-export async function fetchWithRefresh(
-  url: string,
-  opts: RequestInit = {},
-): Promise<Response> {
-  opts.credentials = "include";
-  let res = await fetch(url, opts);
-  if (res.status === 401) {
-    const refreshRes = await fetch(`${apiUrl}/refresh`, {
-      method: "POST",
-      credentials: "include",
-    });
-    if (refreshRes.ok) {
-      res = await fetch(url, opts);
-    } else {
-      const err: any = new Error(
-        refreshRes.statusText || `HTTP ${refreshRes.status}`,
-      );
-      err.status = refreshRes.status;
-      throw err;
-    }
-  }
-  return res;
-}
-
-const responseToData = async (res: Response) => {
-  const text = await res.text();
-  let json: any;
-  try {
-    json = text ? JSON.parse(text) : {};
-  } catch {
-    json = {};
-  }
-  return { status: res.status, headers: res.headers, body: text, json };
-};
-
-const customFetchJson = (url: string, options: any = {}) =>
-  fetchWithRefresh(url, options).then(responseToData);
-
-const authHttpClient = (url: string, options: any = {}) => {
-  options.credentials = "include";
-  options.headers =
-    options.headers || new Headers({ Accept: "application/json" });
-
-  const csrf = document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1];
-  if (csrf) {
-    options.headers.set("X-XSRF-TOKEN", csrf);
-  }
-  if (
-    options.body &&
-    !(options.body instanceof FormData) &&
-    !options.headers.has("Content-Type")
-  ) {
-    options.headers.set("Content-Type", "application/json");
-  }
-  return customFetchJson(url, options);
-};
-
-/** Costruisce URL e options per ciascuna operazione */
-const convertDataRequestToHTTP = (
-  type: string,
+const listUrl = (
   resource: string,
-  params: any,
+  pagination: { page: number; perPage: number },
+  filter: Record<string, unknown> = {},
+  sort?: { field: string; order: string },
 ) => {
-  let url = "";
-  const options: any = {};
-
-  switch (type) {
-    case GET_LIST: {
-      options.method = "GET";
-      const { page, perPage } = params.pagination;
-
-      // Filter
-      const filter: Record<string, any> = {};
-      if (params.filter) {
-        for (const key in params.filter) {
-          filter[key] = {
-            operator: key === "search" ? "ILIKE" : "EQUAL",
-            values: [params.filter[key]],
-          };
-        }
-      }
-      const encodedFilter = encodeURIComponent(JSON.stringify(filter));
-
-      // Sort
-      let encodedSort = "";
-      if (params.sort) {
-        const sortObj: Record<string, string> = {};
-        sortObj[params.sort.field] = params.sort.order;
-        encodedSort = encodeURIComponent(JSON.stringify(sortObj));
-      }
-
-      url =
-        `${apiUrl}/${resource}` +
-        `?page=${page}&pageSize=${perPage}` +
-        (encodedFilter ? `&filter=${encodedFilter}` : "") +
-        (encodedSort ? `&sort=${encodedSort}` : "");
-      break;
-    }
-
-    case GET_ONE: {
-      options.method = "GET";
-      url = `${apiUrl}/${resource}/${params.id}`;
-      break;
-    }
-
-    case GET_MANY: {
-      options.method = "GET";
-      const filter = { ids: { operator: "IN", values: params.ids } };
-      const encodedFilter = encodeURIComponent(JSON.stringify(filter));
-      url =
-        `${apiUrl}/${resource}` +
-        `?filter=${encodedFilter}` +
-        `&page=1&pageSize=100`;
-      break;
-    }
-
-    case GET_MANY_REFERENCE: {
-      options.method = "GET";
-      const { page, perPage } = params.pagination;
-      const filter: Record<string, any> = {
-        [params.target]: { operator: "EQUAL", values: [params.id] },
-      };
-      const encodedFilter = encodeURIComponent(JSON.stringify(filter));
-
-      let encodedSort = "";
-      if (params.sort) {
-        const sortObj: Record<string, string> = {};
-        sortObj[params.sort.field] = params.sort.order;
-        encodedSort = encodeURIComponent(JSON.stringify(sortObj));
-      }
-
-      url =
-        `${apiUrl}/${resource}` +
-        `?filter=${encodedFilter}` +
-        `&page=${page}&pageSize=${perPage}` +
-        (encodedSort ? `&sort=${encodedSort}` : "");
-      break;
-    }
-
-    case CREATE: {
-      options.method = "POST";
-      options.body = JSON.stringify(params.data);
-      url = `${apiUrl}/${resource}`;
-      break;
-    }
-
-    case UPDATE: {
-      options.method = "PUT";
-      options.body = JSON.stringify(params.data);
-      url = `${apiUrl}/${resource}/${params.id}`;
-      break;
-    }
-
-    case DELETE: {
-      options.method = "DELETE";
-      url = `${apiUrl}/${resource}/${params.id}`;
-      break;
-    }
-
-    default:
-      throw new Error(`Unsupported fetch action type ${type}`);
+  const normalizedFilter = Object.fromEntries(
+    Object.entries(filter)
+      .filter(([, value]) => value !== undefined && value !== null && value !== "")
+      .map(([field, value]) => [
+        field,
+        { operator: field === "search" ? "ILIKE" : "EQUAL", values: [value] },
+      ]),
+  );
+  const query = new URLSearchParams({
+    page: String(pagination.page),
+    pageSize: String(pagination.perPage),
+  });
+  if (Object.keys(normalizedFilter).length) {
+    query.set("filter", JSON.stringify(normalizedFilter));
   }
-
-  return { url, options };
+  if (sort) query.set("sort", JSON.stringify({ [sort.field]: sort.order }));
+  return `${apiUrl}/${resource}?${query}`;
 };
 
-/** Converte la risposta HTTP in formato react-admin */
-const convertHTTPResponse = (
-  response: any,
-  type: string,
-  _resource: string,
-  params: any,
-) => {
-  // ► Gestione immediata dei 4xx
-  if (response.status >= 400) {
-    throw new Error(response.statusText || `HTTP ${response.status}`);
+const totalFrom = (headers: Headers) => {
+  const range = headers.get("Content-Range");
+  if (!range) throw new Error("La risposta non contiene l'header Content-Range");
+  const value = range.includes("/") ? range.slice(range.lastIndexOf("/") + 1) : range;
+  const total = Number(value);
+  if (!Number.isSafeInteger(total) || total < 0) {
+    throw new Error("L'header Content-Range non è valido");
   }
-
-  const { headers, json } = response;
-  switch (type) {
-    case GET_LIST:
-    case GET_MANY_REFERENCE: {
-      const range = headers.get("Content-Range");
-      if (!range) {
-        throw new Error("Content-Range header is missing in the response.");
-      }
-      return { data: json, total: parseInt(range, 10) };
-    }
-    case CREATE:
-      return {
-        data: { ...params.data, id: json.id ? json.id : 1, response: json },
-      };
-    default:
-      return { data: json };
-  }
+  return total;
 };
 
-/** DataProvider per react-admin */
+const listResponse = ({ json, headers }: JsonResponse<any[]>) => ({
+  data: json,
+  total: totalFrom(headers),
+});
+
 export const dataProvider: DataProvider = {
-  getList: (resource, params) => {
-    const { url, options } = convertDataRequestToHTTP(
-      GET_LIST,
-      resource,
-      params,
-    );
-    return authHttpClient(url, options).then((r) =>
-      convertHTTPResponse(r, GET_LIST, resource, params),
-    );
-  },
-  getOne: (resource, params) => {
-    const { url, options } = convertDataRequestToHTTP(
-      GET_ONE,
-      resource,
-      params,
-    );
-    return authHttpClient(url, options).then((r) =>
-      convertHTTPResponse(r, GET_ONE, resource, params),
-    );
-  },
+  getList: (resource, params) =>
+    httpRequest<any[]>(
+      listUrl(resource, params.pagination ?? { page: 1, perPage: 25 }, params.filter, params.sort),
+    ).then(listResponse),
+
+  getOne: (resource, params) =>
+    httpRequest<any>(`${apiUrl}/${resource}/${params.id}`).then(({ json }) => ({ data: json })),
+
   getMany: (resource, params) => {
-    const { url, options } = convertDataRequestToHTTP(
-      GET_MANY,
-      resource,
-      params,
-    );
-    return authHttpClient(url, options).then((r) =>
-      convertHTTPResponse(r, GET_MANY, resource, params),
-    );
+    const query = new URLSearchParams({
+      page: "1",
+      pageSize: "100",
+      filter: JSON.stringify({ id: { operator: "IN", values: params.ids } }),
+    });
+    return httpRequest<any[]>(`${apiUrl}/${resource}?${query}`).then(({ json }) => ({ data: json }));
   },
-  getManyReference: (resource, params) => {
-    const { url, options } = convertDataRequestToHTTP(
-      GET_MANY_REFERENCE,
-      resource,
-      params,
-    );
-    return authHttpClient(url, options).then((r) =>
-      convertHTTPResponse(r, GET_MANY_REFERENCE, resource, params),
-    );
-  },
-  create: (resource, params) => {
-    const { url, options } = convertDataRequestToHTTP(CREATE, resource, params);
-    return authHttpClient(url, options).then((r) =>
-      convertHTTPResponse(r, CREATE, resource, params),
-    );
-  },
-  update: (resource, params) => {
-    const { url, options } = convertDataRequestToHTTP(UPDATE, resource, params);
-    return authHttpClient(url, options).then((r) =>
-      convertHTTPResponse(r, UPDATE, resource, params),
-    );
-  },
+
+  getManyReference: (resource, params) =>
+    httpRequest<any[]>(
+      listUrl(
+        resource,
+        params.pagination,
+        { [params.target]: params.id, ...params.filter },
+        params.sort,
+      ),
+    ).then(listResponse),
+
+  create: (resource, params) =>
+    httpRequest<any>(`${apiUrl}/${resource}`, {
+      method: "POST",
+      body: JSON.stringify(params.data),
+    }).then(({ json }) => ({ data: json })),
+
+  update: (resource, params) =>
+    httpRequest<any>(`${apiUrl}/${resource}/${params.id}`, {
+      method: "PUT",
+      body: JSON.stringify(params.data),
+    }).then(({ json }) => ({ data: json })),
+
   updateMany: (resource, params) =>
     Promise.all(
       params.ids.map((id: Identifier) =>
-        authHttpClient(`${apiUrl}/${resource}/${id}`, {
+        httpRequest(`${apiUrl}/${resource}/${id}`, {
           method: "PUT",
           body: JSON.stringify(params.data),
         }),
       ),
-    ).then((responses) => ({ data: responses.map((r) => r.json) })),
-  delete: (resource, params) => {
-    const { url, options } = convertDataRequestToHTTP(DELETE, resource, params);
-    return authHttpClient(url, options).then((r) =>
-      convertHTTPResponse(r, DELETE, resource, params),
-    );
-  },
+    ).then(() => ({ data: params.ids })),
+
+  delete: (resource, params) =>
+    httpRequest<any>(`${apiUrl}/${resource}/${params.id}`, { method: "DELETE" }).then(
+      ({ json }) => ({ data: json ?? params.previousData ?? { id: params.id } }),
+    ),
+
   deleteMany: (resource, params) =>
     Promise.all(
       params.ids.map((id: Identifier) =>
-        authHttpClient(`${apiUrl}/${resource}/${id}`, { method: "DELETE" }),
+        httpRequest(`${apiUrl}/${resource}/${id}`, { method: "DELETE" }),
       ),
-    ).then((responses) => ({ data: responses.map((r) => r.json) })),
+    ).then(() => ({ data: params.ids })),
 };

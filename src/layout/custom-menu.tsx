@@ -8,6 +8,7 @@ import {
 import GroupIcon from "@mui/icons-material/Group";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 
 export const CustomMenu = ({ dense = false }: MenuProps) => {
   const [open] = useSidebarState();
@@ -29,6 +30,12 @@ export const CustomMenu = ({ dense = false }: MenuProps) => {
         to="/articles"
         primaryText="Articoli"
         leftIcon={<Inventory2OutlinedIcon />}
+        dense={dense}
+      />
+      <MenuItemLink
+        to="/workorders"
+        primaryText="Commesse"
+        leftIcon={<AssignmentOutlinedIcon />}
         dense={dense}
       />
       <MenuItemLink

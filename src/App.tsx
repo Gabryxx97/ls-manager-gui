@@ -14,6 +14,9 @@ import { ArticleCreate } from "./resources/article/article-create";
 import { OrderList } from "./resources/order/order-list";
 import { OrderCreate } from "./resources/order/order-create";
 import { OrderEdit } from "./resources/order/order-edit";
+import { WorkOrderList } from "./resources/workorder/workorder-list";
+import { WorkOrderCreate } from "./resources/workorder/workorder-create";
+import { WorkOrderEdit } from "./resources/workorder/workorder-edit";
 
 const App = () => (
   <Admin
@@ -31,6 +34,13 @@ const App = () => (
           list={ArticleList}
           edit={ArticleEdit}
           create={ArticleCreate}
+          recordRepresentation="name"
+        />
+        <Resource
+          name="workorders"
+          list={WorkOrderList}
+          edit={WorkOrderEdit}
+          create={WorkOrderCreate}
           recordRepresentation="name"
         />
         <Resource

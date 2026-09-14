@@ -6,7 +6,7 @@ export type OrderFormDetail = {
 };
 
 export type OrderFormData = {
-  name?: string;
+  workOrderId?: number;
   date?: string;
   priority?: string;
   status?: string;
@@ -14,7 +14,7 @@ export type OrderFormData = {
 };
 
 export const sanitizeOrder = (data: OrderFormData) => ({
-  name: data.name,
+  workOrderId: data.workOrderId,
   date: data.date,
   priority: data.priority,
   status: data.status,
@@ -27,11 +27,7 @@ export const sanitizeOrder = (data: OrderFormData) => ({
 export const validateOrderForm = (values: FieldValues) => {
   const errors: Record<string, unknown> = {};
 
-  if (typeof values.name !== "string" || !values.name.trim()) {
-    errors.name = "Il nome è obbligatorio";
-  } else if (values.name.length > 255) {
-    errors.name = "Il nome non può superare 255 caratteri";
-  }
+  if (values.workOrderId == null) errors.workOrderId = "La commessa è obbligatoria";
   if (!values.date) errors.date = "La data è obbligatoria";
   if (!values.priority) errors.priority = "La priorità è obbligatoria";
   if (!values.status) errors.status = "Lo stato è obbligatorio";

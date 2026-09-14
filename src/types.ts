@@ -12,11 +12,18 @@ export type Article = {
   description?: string | null;
 };
 
+export type WorkOrder = {
+  id: number;
+  name: string;
+  description?: string | null;
+};
+
 export type OrderPriority = "LOW" | "STANDARD" | "HIGH";
 export type OrderStatus = "DRAFT" | "PROCESSING" | "COMPLETED" | "SHIPPED";
 
 export type WarehouseOrder = {
   id: number;
+  workOrderId: number;
   name: string;
   date: string;
   priority: OrderPriority;

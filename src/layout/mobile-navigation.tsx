@@ -2,6 +2,7 @@ import { BottomNavigation, BottomNavigationAction, Paper } from "@mui/material";
 import GroupIcon from "@mui/icons-material/Group";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import { usePermissions } from "react-admin";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -32,6 +33,8 @@ export const MobileNavigation = () => {
         value={
           location.pathname.startsWith("/articles")
             ? "/articles"
+            : location.pathname.startsWith("/workorders")
+              ? "/workorders"
             : location.pathname.startsWith("/orders")
               ? "/orders"
             : location.pathname.startsWith("/users")
@@ -44,6 +47,11 @@ export const MobileNavigation = () => {
           label="Articoli"
           value="/articles"
           icon={<Inventory2OutlinedIcon />}
+        />
+        <BottomNavigationAction
+          label="Commesse"
+          value="/workorders"
+          icon={<AssignmentOutlinedIcon />}
         />
         <BottomNavigationAction
           label="Ordini"

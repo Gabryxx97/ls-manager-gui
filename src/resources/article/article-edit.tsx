@@ -5,7 +5,7 @@ import { ArticleForm } from "./article-form";
 
 const ArticleEditTitle = () => {
   const article = useRecordContext<Article>();
-  return <>{article ? `Modifica ${article.name}` : "Modifica articolo"}</>;
+  return <>{article ? `Modifica ${article.sku}` : "Modifica articolo"}</>;
 };
 
 export const ArticleEdit = () => (

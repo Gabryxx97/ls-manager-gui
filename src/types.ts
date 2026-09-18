@@ -8,8 +8,14 @@ export type User = {
 
 export type Article = {
   id: number;
-  name: string;
-  description?: string | null;
+  sku: string;
+  description: string;
+  category?: string | null;
+  costCenter?: string | null;
+  unitOfMeasure?: string | null;
+  location?: string | null;
+  stockQuantity?: number | string | null;
+  unitPrice?: number | string | null;
 };
 
 export type WorkOrder = {
@@ -20,6 +26,7 @@ export type WorkOrder = {
 
 export type OrderPriority = "LOW" | "STANDARD" | "HIGH";
 export type OrderStatus = "DRAFT" | "PROCESSING" | "COMPLETED" | "SHIPPED";
+export type OrderCategory = "HYDRAULIC_HVAC" | "CONSUMABLE" | "SITE_SUPPLY" | "REPAIR_EMERGENCY";
 
 export type WarehouseOrder = {
   id: number;
@@ -28,4 +35,5 @@ export type WarehouseOrder = {
   date: string;
   priority: OrderPriority;
   status: OrderStatus;
+  category?: OrderCategory | null;
 };

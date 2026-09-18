@@ -35,7 +35,6 @@ const userFilters = [
   <SearchInput
     key="search"
     source="search"
-    label="Cerca utenti"
     placeholder="Nome, cognome o username…"
     alwaysOn
   />,
@@ -62,17 +61,37 @@ const UserMobileCards = () => {
           <RecordContextProvider key={user.id} value={user}>
             <Card component="article">
               <CardContent sx={{ pb: 1 }}>
-                <Typography component="h2" variant="h3" sx={{ overflowWrap: "anywhere" }}>
+                <Typography
+                  component="h2"
+                  variant="h3"
+                  sx={{ overflowWrap: "anywhere" }}
+                >
                   {fullName || user.username}
                 </Typography>
                 {fullName && (
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mt: 1 }}
+                  >
                     {user.username}
                   </Typography>
                 )}
-                <Stack direction="row" spacing={1} sx={{ mt: 1.5, alignItems: "center" }}>
-                  <Chip label={roleLabel(user.role)} color="primary" variant="outlined" />
-                  <Typography variant="caption" className="ls-mono" color="text.secondary">
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ mt: 1.5, alignItems: "center" }}
+                >
+                  <Chip
+                    label={roleLabel(user.role)}
+                    color="primary"
+                    variant="outlined"
+                  />
+                  <Typography
+                    variant="caption"
+                    className="ls-mono"
+                    color="text.secondary"
+                  >
                     ID {user.id}
                   </Typography>
                 </Stack>
@@ -144,7 +163,11 @@ export const UserList = () => {
               label="Ruolo"
               sortable
               render={(record) => (
-                <Chip label={roleLabel(record.role)} color="primary" variant="outlined" />
+                <Chip
+                  label={roleLabel(record.role)}
+                  color="primary"
+                  variant="outlined"
+                />
               )}
             />
             <EditButton label="Modifica" />

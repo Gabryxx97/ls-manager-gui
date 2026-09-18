@@ -31,10 +31,12 @@ export const OrderCreate = () => {
         defaultValues={{
           status: "DRAFT",
           priority: "STANDARD",
-          details: [{ quantity: 1 }],
+          category: "HYDRAULIC_HVAC",
+          date: new Date().toLocaleDateString("sv-SE"),
+          details: [],
         }}
       >
-        <OrderForm />
+        <OrderForm mobileHeader />
       </SimpleForm>
     </Create>
   );

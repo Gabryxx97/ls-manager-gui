@@ -13,6 +13,7 @@ import {
   CreateButton,
   Datagrid,
   EditButton,
+  FunctionField,
   List,
   Pagination,
   RecordContextProvider,
@@ -61,7 +62,13 @@ const ArticleMobileCards = () => {
                 variant="h3"
                 sx={{ overflowWrap: "anywhere" }}
               >
-                {article.name}
+                {article.description}
+              </Typography>
+              <Typography variant="caption" className="ls-mono" color="primary" sx={{ mt: 0.5 }}>
+                {article.sku}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                {article.category || "Senza categoria"} · {article.costCenter || "Senza centro di costo"}
               </Typography>
               <Typography
                 variant="body2"
@@ -72,12 +79,15 @@ const ArticleMobileCards = () => {
                   overflowWrap: "anywhere",
                 }}
               >
-                {article.description || "Nessuna descrizione"}
+                Ubicazione: {article.location || "—"} · Giacenza: {article.stockQuantity == null ? "—" : `${article.stockQuantity} ${article.unitOfMeasure || ""}`.trim()}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                Prezzo: {article.unitPrice == null ? "—" : `€ ${Number(article.unitPrice).toFixed(2)}`}
               </Typography>
             </CardContent>
             <CardActions sx={{ justifyContent: "flex-end", px: 2, pb: 1.5 }}>
               <EditButton label="Modifica" />
-              <CustomDeleteButton resource="articles" titleField="name" />
+              <CustomDeleteButton resource="articles" titleField="description" />
             </CardActions>
           </Card>
         </RecordContextProvider>
@@ -117,7 +127,7 @@ export const ArticleList = () => {
         title="Articoli"
         actions={<ArticleActions />}
         filters={articleFilters}
-        sort={{ field: "name", order: "ASC" }}
+        sort={{ field: "sku", order: "ASC" }}
         perPage={25}
         pagination={<Pagination rowsPerPageOptions={[10, 25, 50, 100]} />}
         empty={
@@ -133,10 +143,21 @@ export const ArticleList = () => {
           <ArticleMobileCards />
         ) : (
           <Datagrid bulkActionButtons={false} rowClick={false}>
-            <TextField source="name" label="Nome" sortable />
+            <TextField source="sku" label="SKU" sortable />
             <TextField source="description" label="Descrizione" sortable />
+            <TextField source="category" label="Categoria" sortable />
+            <TextField source="costCenter" label="Centro di costo" sortable />
+            <TextField source="unitOfMeasure" label="U.M." sortable />
+            <TextField source="location" label="Ubicazione" sortable />
+            <TextField source="stockQuantity" label="Giacenza" sortable />
+            <FunctionField<Article>
+              source="unitPrice"
+              label="Prezzo"
+              sortable
+              render={(record) => record.unitPrice == null ? "—" : `€ ${Number(record.unitPrice).toFixed(2)}`}
+            />
             <EditButton label="Modifica" />
-            <CustomDeleteButton resource="articles" titleField="name" />
+            <CustomDeleteButton resource="articles" titleField="description" />
           </Datagrid>
         )}
       </List>

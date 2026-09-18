@@ -31,8 +31,13 @@ const PREVIEW_ROWS = 100;
 
 type ImportItem = {
   rowNumber: number;
-  name: string;
-  description?: string;
+  sku: string;
+  description: string;
+  category?: string;
+  costCenter?: string;
+  unitOfMeasure?: string;
+  location?: string;
+  stockQuantity?: number;
 };
 
 type ImportError = {
@@ -45,6 +50,7 @@ type ImportError = {
 type ImportResponse = {
   received: number;
   created: number;
+  updated: number;
   failed: number;
   errors: Array<Omit<ImportError, "source">>;
 };
@@ -60,8 +66,9 @@ type ImportResult = {
   fileName: string;
   totalRows: number;
   created: number;
+  updated: number;
   failed: number;
-  createdItems: ImportItem[];
+  importedItems: ImportItem[];
   errors: ImportError[];
 };
 
@@ -137,8 +144,9 @@ const readCsv = async (file: File): Promise<ParsedFile> => {
   if (nonEmptyRows.length === 0) throw new Error("Il file CSV è vuoto");
 
   const header = nonEmptyRows[0].cells.map((cell) => cell.trim().toLocaleLowerCase());
-  if (header.length !== 2 || header[0] !== "name" || header[1] !== "description") {
-    throw new Error("Le intestazioni richieste sono name,description (in questo ordine)");
+  const expectedHeader = ["sku", "description", "category", "costcenter", "unitofmeasure", "location", "stockquantity"];
+  if (header.length !== expectedHeader.length || header.some((cell, index) => cell !== expectedHeader[index])) {
+    throw new Error("Le intestazioni richieste sono sku,description,category,costCenter,unitOfMeasure,location,stockQuantity (in questo ordine)");
   }
 
   const dataRows = nonEmptyRows.slice(1);
@@ -147,36 +155,62 @@ const readCsv = async (file: File): Promise<ParsedFile> => {
   const items: ImportItem[] = [];
   const errors: ImportError[] = [];
   for (const row of dataRows) {
-    if (row.cells.length !== 2) {
+    if (row.cells.length !== 7) {
       errors.push({
         rowNumber: row.rowNumber,
         field: null,
-        message: "La riga deve contenere esattamente due colonne",
+        message: "La riga deve contenere esattamente sette colonne",
         source: "client",
       });
       continue;
     }
-    const name = row.cells[0].trim().replace(/\s+/g, " ");
-    const description = row.cells[1].trim();
-    if (!name) {
+    const sku = row.cells[0].trim().replace(/\s+/g, "-").toUpperCase();
+    const description = row.cells[1].trim().replace(/\s+/g, " ");
+    const category = row.cells[2].trim().replace(/\s+/g, " ");
+    const costCenter = row.cells[3].trim().replace(/\s+/g, " ");
+    const unitOfMeasure = row.cells[4].trim().replace(/\s+/g, " ");
+    const location = row.cells[5].trim().replace(/\s+/g, " ");
+    const quantityRaw = row.cells[6].trim();
+    const quantityText = quantityRaw.replace(",", ".");
+    const stockQuantity = quantityText === "" ? undefined : Number(quantityText);
+    if (!sku || sku.length > 64) {
+      errors.push({ rowNumber: row.rowNumber, field: "sku", message: "Lo SKU è obbligatorio e non può superare 64 caratteri", source: "client" });
+      continue;
+    }
+    if (!description) {
       errors.push({
         rowNumber: row.rowNumber,
-        field: "name",
-        message: "Il nome è obbligatorio",
+        field: "description",
+        message: "La descrizione è obbligatoria",
         source: "client",
       });
       continue;
     }
-    if (name.length > 255) {
-      errors.push({
-        rowNumber: row.rowNumber,
-        field: "name",
-        message: "Il nome non può superare 255 caratteri",
-        source: "client",
-      });
+    const oversized = [
+      ["category", category, 64],
+      ["costCenter", costCenter, 128],
+      ["unitOfMeasure", unitOfMeasure, 16],
+      ["location", location, 255],
+    ] as const;
+    const invalidText = oversized.find(([, value, max]) => value.length > max);
+    if (invalidText) {
+      errors.push({ rowNumber: row.rowNumber, field: invalidText[0], message: `Il campo non può superare ${invalidText[2]} caratteri`, source: "client" });
       continue;
     }
-    items.push({ rowNumber: row.rowNumber, name, description: description || undefined });
+    if (quantityRaw && !/^-?\d{1,12}(?:[.,]\d{1,2})?$/.test(quantityRaw)) {
+      errors.push({ rowNumber: row.rowNumber, field: "stockQuantity", message: "La giacenza deve essere un numero con massimo 12 cifre intere e due decimali", source: "client" });
+      continue;
+    }
+    items.push({
+      rowNumber: row.rowNumber,
+      sku,
+      description,
+      category: category || undefined,
+      costCenter: costCenter || undefined,
+      unitOfMeasure: unitOfMeasure || undefined,
+      location: location || undefined,
+      stockQuantity,
+    });
   }
 
   return { fileName: file.name, totalRows: dataRows.length, items, errors };
@@ -187,11 +221,12 @@ const resultText = (result: ImportResult) => {
     `Importazione articoli: ${result.fileName}`,
     `Righe elaborate: ${result.totalRows}`,
     `Articoli creati: ${result.created}`,
+    `Articoli aggiornati: ${result.updated}`,
     `Righe scartate: ${result.failed}`,
   ];
-  if (result.createdItems.length) {
-    lines.push("", "Righe create:");
-    result.createdItems.forEach((item) => lines.push(`- Riga ${item.rowNumber}: ${item.name}`));
+  if (result.importedItems.length) {
+    lines.push("", "Righe importate:");
+    result.importedItems.forEach((item) => lines.push(`- Riga ${item.rowNumber}: ${item.sku} — ${item.description}`));
   }
   if (result.errors.length) {
     lines.push("", "Errori:");
@@ -254,12 +289,13 @@ export const ArticleImportButton = () => {
         fileName: parsed.fileName,
         totalRows: parsed.totalRows,
         created: json.created,
+        updated: json.updated,
         failed: parsed.errors.length + json.failed,
-        createdItems: parsed.items.filter((item) => !failedServerRows.has(item.rowNumber)),
+        importedItems: parsed.items.filter((item) => !failedServerRows.has(item.rowNumber)),
         errors,
       });
       refresh();
-      notify(`${json.created} articoli creati`, { type: json.failed ? "warning" : "success" });
+      notify(`${json.created} articoli creati, ${json.updated} aggiornati`, { type: json.failed ? "warning" : "success" });
     } catch (error) {
       notify(error instanceof Error ? error.message : "Importazione non riuscita", { type: "error" });
     } finally {
@@ -298,7 +334,7 @@ export const ArticleImportButton = () => {
           {!result && (
             <Stack spacing={2}>
               <Typography color="text.secondary">
-                File UTF-8 fino a 5 MB e 5.000 righe, con intestazioni <code>name,description</code>.
+                File UTF-8 fino a 5 MB e 5.000 righe, con intestazioni <code>sku,description,category,costCenter,unitOfMeasure,location,stockQuantity</code>.
               </Typography>
               <Box>
                 <input
@@ -333,13 +369,18 @@ export const ArticleImportButton = () => {
                   {parsed.items.length > 0 && (
                     <TableContainer component={Paper} sx={{ maxHeight: 360 }}>
                       <Table stickyHeader size="small" aria-label="Anteprima articoli da importare">
-                        <TableHead><TableRow><TableCell>Riga</TableCell><TableCell>Nome</TableCell><TableCell>Descrizione</TableCell></TableRow></TableHead>
+                        <TableHead><TableRow><TableCell>Riga</TableCell><TableCell>SKU</TableCell><TableCell>Descrizione</TableCell><TableCell>Categoria</TableCell><TableCell>Centro di costo</TableCell><TableCell>U.M.</TableCell><TableCell>Ubicazione</TableCell><TableCell>Giacenza</TableCell></TableRow></TableHead>
                         <TableBody>
                           {parsed.items.slice(0, PREVIEW_ROWS).map((item) => (
                             <TableRow key={item.rowNumber}>
                               <TableCell className="ls-mono">{item.rowNumber}</TableCell>
-                              <TableCell>{item.name}</TableCell>
-                              <TableCell>{item.description || "—"}</TableCell>
+                              <TableCell className="ls-mono">{item.sku}</TableCell>
+                              <TableCell>{item.description}</TableCell>
+                              <TableCell>{item.category || "—"}</TableCell>
+                              <TableCell>{item.costCenter || "—"}</TableCell>
+                              <TableCell>{item.unitOfMeasure || "—"}</TableCell>
+                              <TableCell>{item.location || "—"}</TableCell>
+                              <TableCell>{item.stockQuantity ?? "—"}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -368,7 +409,7 @@ export const ArticleImportButton = () => {
           {result && (
             <Stack spacing={2}>
               <Alert severity={result.failed ? "warning" : "success"}>
-                Importazione conclusa: {result.created} articoli creati e {result.failed} righe scartate.
+                Importazione conclusa: {result.created} articoli creati, {result.updated} aggiornati e {result.failed} righe scartate.
               </Alert>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography component="pre" sx={{ m: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>

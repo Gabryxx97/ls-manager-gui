@@ -3,6 +3,9 @@ import { FieldValues } from "react-hook-form";
 export type OrderFormDetail = {
   articleId?: number;
   quantity?: number;
+  unitPrice?: number | string | null;
+  articleSku?: string | null;
+  articleDescription?: string | null;
 };
 
 export type OrderFormData = {
@@ -10,6 +13,8 @@ export type OrderFormData = {
   date?: string;
   priority?: string;
   status?: string;
+  category?: string;
+  notes?: string;
   details?: OrderFormDetail[];
 };
 
@@ -18,6 +23,8 @@ export const sanitizeOrder = (data: OrderFormData) => ({
   date: data.date,
   priority: data.priority,
   status: data.status,
+  category: data.category,
+  notes: data.notes,
   details: (data.details ?? []).map(({ articleId, quantity }) => ({
     articleId,
     quantity,

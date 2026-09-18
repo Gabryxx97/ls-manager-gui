@@ -32,15 +32,15 @@ const App = () => (
         <Resource
           name="articles"
           list={ArticleList}
-          edit={ArticleEdit}
-          create={ArticleCreate}
+          edit={permissions === "ADMIN_ROLE" ? ArticleEdit : undefined}
+          create={permissions === "ADMIN_ROLE" ? ArticleCreate : undefined}
           recordRepresentation="name"
         />
         <Resource
           name="workorders"
           list={WorkOrderList}
-          edit={WorkOrderEdit}
-          create={WorkOrderCreate}
+          edit={permissions === "ADMIN_ROLE" ? WorkOrderEdit : undefined}
+          create={permissions === "ADMIN_ROLE" ? WorkOrderCreate : undefined}
           recordRepresentation="name"
         />
         <Resource

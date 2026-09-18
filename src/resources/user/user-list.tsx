@@ -28,8 +28,11 @@ import { CustomDeleteButton } from "../../components/custom-delete-button";
 import { CustomEmpty } from "../../components/custom-empty";
 import { User } from "../../types";
 
-const roleLabel = (role: string) =>
-  role === "ADMIN_ROLE" ? "Amministratore" : "Utente";
+const roleLabel = (role: string) => ({
+  ADMIN_ROLE: "Amministratore",
+  OPERATOR_ROLE: "Operatore",
+  WAREHOUSE_ROLE: "Magazziniere",
+}[role] ?? role);
 
 const userFilters = [
   <SearchInput

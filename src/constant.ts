@@ -1,4 +1,5 @@
 export const roles = [
   { id: "ADMIN_ROLE", name: "Amministratore" },
-  { id: "USER_ROLE", name: "Utente" },
+  { id: "OPERATOR_ROLE", name: "Operatore" },
+  { id: "WAREHOUSE_ROLE", name: "Magazziniere" },
 ];

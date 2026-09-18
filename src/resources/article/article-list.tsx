@@ -21,6 +21,7 @@ import {
   TextField,
   TopToolbar,
   useListContext,
+  usePermissions,
 } from "react-admin";
 import { useNavigate } from "react-router-dom";
 import { CustomDeleteButton } from "../../components/custom-delete-button";
@@ -37,19 +38,25 @@ const articleFilters = [
   />,
 ];
 
-const ArticleActions = () => (
-  <TopToolbar>
-    <ArticleImportButton />
-    <CreateButton
-      sx={{ display: { xs: "none", sm: "inline-flex" } }}
-      variant="contained"
-      label="Nuovo articolo"
-    />
-  </TopToolbar>
-);
+const ArticleActions = () => {
+  const { permissions } = usePermissions();
+  if (permissions !== "ADMIN_ROLE") return null;
+  return (
+    <TopToolbar>
+      <ArticleImportButton />
+      <CreateButton
+        sx={{ display: { xs: "none", sm: "inline-flex" } }}
+        variant="contained"
+        label="Nuovo articolo"
+      />
+    </TopToolbar>
+  );
+};
 
 const ArticleMobileCards = () => {
   const { data = [] } = useListContext<Article>();
+  const { permissions } = usePermissions();
+  const canManage = permissions === "ADMIN_ROLE";
 
   return (
     <Stack spacing={1.5} component="section" aria-label="Elenco articoli">
@@ -86,8 +93,8 @@ const ArticleMobileCards = () => {
               </Typography>
             </CardContent>
             <CardActions sx={{ justifyContent: "flex-end", px: 2, pb: 1.5 }}>
-              <EditButton label="Modifica" />
-              <CustomDeleteButton resource="articles" titleField="description" />
+              {canManage && <EditButton label="Modifica" />}
+              {canManage && <CustomDeleteButton resource="articles" titleField="description" />}
             </CardActions>
           </Card>
         </RecordContextProvider>
@@ -98,6 +105,8 @@ const ArticleMobileCards = () => {
 
 const MobileCreateFab = () => {
   const navigate = useNavigate();
+  const { permissions } = usePermissions();
+  if (permissions !== "ADMIN_ROLE") return null;
 
   return (
     <Fab
@@ -120,6 +129,8 @@ const MobileCreateFab = () => {
 export const ArticleList = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const { permissions } = usePermissions();
+  const canManage = permissions === "ADMIN_ROLE";
 
   return (
     <>
@@ -134,7 +145,7 @@ export const ArticleList = () => {
           <CustomEmpty
             resourceName="articolo"
             resourceGen="m"
-            isCreate={!isMobile}
+            isCreate={!isMobile && canManage}
           />
         }
         emptyWhileLoading
@@ -156,8 +167,8 @@ export const ArticleList = () => {
               sortable
               render={(record) => record.unitPrice == null ? "—" : `€ ${Number(record.unitPrice).toFixed(2)}`}
             />
-            <EditButton label="Modifica" />
-            <CustomDeleteButton resource="articles" titleField="description" />
+            {canManage && <EditButton label="Modifica" />}
+            {canManage && <CustomDeleteButton resource="articles" titleField="description" />}
           </Datagrid>
         )}
       </List>

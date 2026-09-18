@@ -47,7 +47,7 @@ const App = () => (
           name="orders"
           list={OrderList}
           edit={OrderEdit}
-          create={OrderCreate}
+          create={permissions === "WAREHOUSE_ROLE" ? undefined : OrderCreate}
           recordRepresentation="name"
         />
         {permissions === "ADMIN_ROLE" && (

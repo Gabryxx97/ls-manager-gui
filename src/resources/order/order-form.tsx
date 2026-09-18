@@ -8,6 +8,7 @@ import {
   TextInput,
   useGetList,
   useGetMany,
+  useRecordContext,
 } from "react-admin";
 import {
   Box,
@@ -41,20 +42,16 @@ import {
   useWatch,
 } from "react-hook-form";
 import { Article } from "../../types";
+import { WarehouseOrder } from "../../types";
 import { useRedirect } from "react-admin";
 import { OrderFormData } from "./order-form-utils";
 
 const categoryChoices = [
-  { id: "HYDRAULIC_HVAC", name: "Impianto Idraulico / HVAC" },
-  { id: "CONSUMABLE", name: "Materiale di Consumo" },
-  { id: "SITE_SUPPLY", name: "Fornitura Cantiere" },
-  { id: "REPAIR_EMERGENCY", name: "Riparazione / Emergenza" },
-];
-const statusChoices = [
-  { id: "DRAFT", name: "Bozza" },
-  { id: "PROCESSING", name: "In lavorazione" },
-  { id: "COMPLETED", name: "Completato" },
-  { id: "SHIPPED", name: "Spedito" },
+  { id: "HYDRAULIC", name: "Idrico" },
+  { id: "ELECTRICAL", name: "Elettrico" },
+  { id: "CONSTRUCTION_CARPENTRY", name: "Edile - carpenteria" },
+  { id: "HARDWARE_MISC", name: "Ferramenta e varie" },
+  { id: "CLOTHING", name: "Vestiario" },
 ];
 const priorityChoices = [
   { id: "LOW", name: "Bassa" },
@@ -464,12 +461,15 @@ const OrderDetailsEditor = () => {
 
 export const OrderForm = ({
   mobileHeader = false,
+  minimumDate,
 }: {
   mobileHeader?: boolean;
+  minimumDate?: string;
 }) => {
   const theme = useTheme();
   const mobile = useMediaQuery(theme.breakpoints.down("sm"));
   const redirect = useRedirect();
+  const record = useRecordContext<WarehouseOrder>();
   return (
     <Stack spacing={3} sx={{ width: "100%", pb: { xs: 8, sm: 0 } }}>
       {mobileHeader && (
@@ -496,7 +496,7 @@ export const OrderForm = ({
               variant="caption"
               sx={{ bgcolor: "action.hover", px: 1, py: 0.5, borderRadius: 2 }}
             >
-              Bozza
+              In lavorazione
             </Typography>
           </Stack>
           <IconButton
@@ -521,6 +521,11 @@ export const OrderForm = ({
         >
           Informazioni ordine
         </Typography>
+        {record && (
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Magazziniere assegnato: {record.assignedWarehouseName ?? "Non assegnato"}
+          </Typography>
+        )}
         <Stack spacing={2}>
           <ReferenceInput
             source="workOrderId"
@@ -564,6 +569,7 @@ export const OrderForm = ({
               source="date"
               label="Data"
               validate={required("La data è obbligatoria")}
+              slotProps={{ htmlInput: minimumDate ? { min: minimumDate } : undefined }}
               fullWidth
             />
             <SelectInput
@@ -571,13 +577,6 @@ export const OrderForm = ({
               label="Priorità"
               choices={priorityChoices}
               validate={required("La priorità è obbligatoria")}
-              fullWidth
-            />
-            <SelectInput
-              source="status"
-              label="Stato"
-              choices={statusChoices}
-              validate={required("Lo stato è obbligatorio")}
               fullWidth
             />
           </Stack>

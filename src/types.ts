@@ -25,8 +25,19 @@ export type WorkOrder = {
 };
 
 export type OrderPriority = "LOW" | "STANDARD" | "HIGH";
-export type OrderStatus = "DRAFT" | "PROCESSING" | "COMPLETED" | "SHIPPED";
-export type OrderCategory = "HYDRAULIC_HVAC" | "CONSUMABLE" | "SITE_SUPPLY" | "REPAIR_EMERGENCY";
+export type OrderStatus = "PROCESSING" | "COMPLETED" | "CANCELED";
+export type OrderDetailStatus =
+  | "TO_PICK"
+  | "COMPLETED"
+  | "TO_PURCHASE"
+  | "CANCELED"
+  | "REPLACED";
+export type OrderCategory =
+  | "HYDRAULIC"
+  | "ELECTRICAL"
+  | "CONSTRUCTION_CARPENTRY"
+  | "HARDWARE_MISC"
+  | "CLOTHING";
 
 export type WarehouseOrder = {
   id: number;
@@ -36,4 +47,23 @@ export type WarehouseOrder = {
   priority: OrderPriority;
   status: OrderStatus;
   category?: OrderCategory | null;
+  assignedWarehouseId?: number | null;
+  assignedWarehouseName?: string | null;
+  takenInChargeAt?: string | null;
+  notes?: string | null;
+  netTotal?: number | string | null;
+  details?: WarehouseOrderDetail[];
+};
+
+export type WarehouseOrderDetail = {
+  id: number;
+  articleId: number;
+  articleSku: string;
+  articleDescription: string;
+  quantity: number;
+  status: OrderDetailStatus;
+  pickedQuantity: number;
+  remainingQuantity: number;
+  unitPrice?: number | string | null;
+  subtotal?: number | string | null;
 };

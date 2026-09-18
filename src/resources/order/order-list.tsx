@@ -24,21 +24,21 @@ import {
   TextField,
   TopToolbar,
   useListContext,
+  usePermissions,
 } from "react-admin";
 import { useNavigate } from "react-router-dom";
 import { CustomDeleteButton } from "../../components/custom-delete-button";
 import { CustomEmpty } from "../../components/custom-empty";
+import { OrderPriority, OrderStatus, WarehouseOrder } from "../../types";
 import {
-  OrderPriority,
-  OrderStatus,
-  WarehouseOrder,
-} from "../../types";
+  AssignedWarehouse,
+  OrderAssignmentActions,
+} from "./order-assignment-actions";
 
 const statusChoices = [
-  { id: "DRAFT", name: "Bozza" },
   { id: "PROCESSING", name: "In lavorazione" },
   { id: "COMPLETED", name: "Completato" },
-  { id: "SHIPPED", name: "Spedito" },
+  { id: "CANCELED", name: "Annullato" },
 ];
 
 const priorityChoices = [
@@ -51,10 +51,9 @@ const statusPresentation: Record<
   OrderStatus,
   { label: string; color: ChipProps["color"] }
 > = {
-  DRAFT: { label: "Bozza", color: "default" },
   PROCESSING: { label: "In lavorazione", color: "info" },
   COMPLETED: { label: "Completato", color: "success" },
-  SHIPPED: { label: "Spedito", color: "primary" },
+  CANCELED: { label: "Annullato", color: "error" },
 };
 
 const priorityPresentation: Record<
@@ -112,15 +111,34 @@ const orderFilters = [
   />,
 ];
 
-const OrderActions = () => (
-  <TopToolbar>
-    <CreateButton
-      sx={{ display: { xs: "none", sm: "inline-flex" } }}
-      variant="contained"
-      label="Nuovo ordine"
-    />
-  </TopToolbar>
-);
+const OrderActions = () => {
+  const { permissions } = usePermissions();
+  return (
+    <TopToolbar>
+      {permissions !== "WAREHOUSE_ROLE" && (
+        <CreateButton
+          sx={{ display: { xs: "none", sm: "inline-flex" } }}
+          variant="contained"
+          label="Nuovo ordine"
+        />
+      )}
+    </TopToolbar>
+  );
+};
+
+const OrderRowActions = ({ order }: { order: WarehouseOrder }) => {
+  const { permissions } = usePermissions();
+  const canDelete =
+    permissions !== "WAREHOUSE_ROLE" &&
+    !order.takenInChargeAt &&
+    order.status === "PROCESSING";
+  return (
+    <>
+      <EditButton label="Apri" />
+      {canDelete && <CustomDeleteButton resource="orders" titleField="name" />}
+    </>
+  );
+};
 
 const OrderMobileCards = () => {
   const { data = [] } = useListContext<WarehouseOrder>();
@@ -134,7 +152,10 @@ const OrderMobileCards = () => {
               <Stack
                 direction="row"
                 spacing={1}
-                sx={{ justifyContent: "space-between", alignItems: "flex-start" }}
+                sx={{
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                }}
               >
                 <Typography
                   component="h2"
@@ -145,23 +166,43 @@ const OrderMobileCards = () => {
                 </Typography>
                 <StatusChip status={order.status} />
               </Stack>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 1.5 }}
+              >
                 Data: {formatDate(order.date)}
               </Typography>
               <Stack
                 direction="row"
                 spacing={1}
-                sx={{ mt: 1.5, alignItems: "center", flexWrap: "wrap", rowGap: 1 }}
+                sx={{
+                  mt: 1.5,
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  rowGap: 1,
+                }}
               >
                 <PriorityChip priority={order.priority} />
-                <Typography variant="caption" className="ls-mono" color="text.secondary">
+                <Typography
+                  variant="caption"
+                  className="ls-mono"
+                  color="text.secondary"
+                >
                   ID {order.id}
                 </Typography>
               </Stack>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 1.5 }}
+              >
+                Magazziniere: <AssignedWarehouse order={order} />
+              </Typography>
             </CardContent>
             <CardActions sx={{ justifyContent: "flex-end", px: 2, pb: 1.5 }}>
-              <EditButton label="Modifica" />
-              <CustomDeleteButton resource="orders" titleField="name" />
+              <OrderAssignmentActions order={order} />
+              <OrderRowActions order={order} />
             </CardActions>
           </Card>
         </RecordContextProvider>
@@ -172,6 +213,8 @@ const OrderMobileCards = () => {
 
 const MobileCreateFab = () => {
   const navigate = useNavigate();
+  const { permissions } = usePermissions();
+  if (permissions === "WAREHOUSE_ROLE") return null;
   return (
     <Fab
       color="primary"
@@ -235,8 +278,18 @@ export const OrderList = () => {
               sortable
               render={(record) => <StatusChip status={record.status} />}
             />
-            <EditButton label="Modifica" />
-            <CustomDeleteButton resource="orders" titleField="name" />
+            <FunctionField<WarehouseOrder>
+              label="Magazziniere"
+              render={(record) => <AssignedWarehouse order={record} />}
+            />
+            <FunctionField<WarehouseOrder>
+              label="Presa in carico"
+              render={(record) => <OrderAssignmentActions order={record} />}
+            />
+            <FunctionField<WarehouseOrder>
+              label="Azioni"
+              render={(record) => <OrderRowActions order={record} />}
+            />
           </Datagrid>
         )}
       </List>

@@ -12,17 +12,21 @@ export type OrderFormData = {
   workOrderId?: number;
   date?: string;
   priority?: string;
-  status?: string;
   category?: string;
   notes?: string;
   details?: OrderFormDetail[];
+};
+
+export const dateWithOffset = (days: number) => {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toLocaleDateString("sv-SE");
 };
 
 export const sanitizeOrder = (data: OrderFormData) => ({
   workOrderId: data.workOrderId,
   date: data.date,
   priority: data.priority,
-  status: data.status,
   category: data.category,
   notes: data.notes,
   details: (data.details ?? []).map(({ articleId, quantity }) => ({
@@ -31,13 +35,16 @@ export const sanitizeOrder = (data: OrderFormData) => ({
   })),
 });
 
-export const validateOrderForm = (values: FieldValues) => {
+export const validateOrderForm = (values: FieldValues, minimumDate?: string) => {
   const errors: Record<string, unknown> = {};
 
   if (values.workOrderId == null) errors.workOrderId = "La commessa è obbligatoria";
   if (!values.date) errors.date = "La data è obbligatoria";
+  else if (minimumDate && String(values.date) < minimumDate) {
+    errors.date = `La data deve essere dal ${minimumDate} in poi`;
+  }
   if (!values.priority) errors.priority = "La priorità è obbligatoria";
-  if (!values.status) errors.status = "Lo stato è obbligatorio";
+  if (!values.category) errors.category = "La categoria è obbligatoria";
 
   const details = Array.isArray(values.details)
     ? (values.details as OrderFormDetail[])

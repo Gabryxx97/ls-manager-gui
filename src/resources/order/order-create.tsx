@@ -1,11 +1,13 @@
-import { Create, SimpleForm, useNotify, useRedirect } from "react-admin";
+import { Create, SimpleForm, useNotify, usePermissions, useRedirect } from "react-admin";
 import { CustomToolbar } from "../../components/custom-toolbar";
 import { OrderForm } from "./order-form";
-import { sanitizeOrder, validateOrderForm } from "./order-form-utils";
+import { dateWithOffset, sanitizeOrder, validateOrderForm } from "./order-form-utils";
 
 export const OrderCreate = () => {
   const notify = useNotify();
   const redirect = useRedirect();
+  const { permissions } = usePermissions();
+  const minimumDate = dateWithOffset(permissions === "ADMIN_ROLE" ? 1 : 2);
 
   return (
     <Create
@@ -26,17 +28,15 @@ export const OrderCreate = () => {
       <SimpleForm
         mode="onChange"
         reValidateMode="onChange"
-        validate={validateOrderForm}
+        validate={(values) => validateOrderForm(values, minimumDate)}
         toolbar={<CustomToolbar disableInvalid />}
         defaultValues={{
-          status: "DRAFT",
           priority: "STANDARD",
-          category: "HYDRAULIC_HVAC",
-          date: new Date().toLocaleDateString("sv-SE"),
+          date: minimumDate,
           details: [],
         }}
       >
-        <OrderForm mobileHeader />
+        <OrderForm mobileHeader minimumDate={minimumDate} />
       </SimpleForm>
     </Create>
   );

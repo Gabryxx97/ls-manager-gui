@@ -1,8 +1,9 @@
-import { Edit, SimpleForm, useNotify, useRecordContext, useRedirect } from "react-admin";
+import { Edit, SimpleForm, useNotify, usePermissions, useRecordContext, useRedirect } from "react-admin";
 import { WarehouseOrder } from "../../types";
 import { CustomToolbar } from "../../components/custom-toolbar";
 import { OrderForm } from "./order-form";
 import { sanitizeOrder, validateOrderForm } from "./order-form-utils";
+import { OrderWorkflow } from "./order-workflow";
 
 const OrderEditTitle = () => {
   const record = useRecordContext<WarehouseOrder>();
@@ -30,14 +31,30 @@ export const OrderEdit = () => {
         },
       }}
     >
-      <SimpleForm
-        mode="onChange"
-        reValidateMode="onChange"
-        validate={validateOrderForm}
-        toolbar={<CustomToolbar disableInvalid />}
-      >
-        <OrderForm />
-      </SimpleForm>
+      <OrderEditContent />
     </Edit>
+  );
+};
+
+const OrderEditContent = () => {
+  const record = useRecordContext<WarehouseOrder>();
+  const { permissions } = usePermissions();
+  if (!record) return null;
+
+  const structurallyEditable = record.status === "PROCESSING"
+    && !record.takenInChargeAt
+    && permissions !== "WAREHOUSE_ROLE";
+
+  if (!structurallyEditable) return <OrderWorkflow order={record} />;
+
+  return (
+    <SimpleForm
+      mode="onChange"
+      reValidateMode="onChange"
+      validate={validateOrderForm}
+      toolbar={<CustomToolbar disableInvalid />}
+    >
+      <OrderForm />
+    </SimpleForm>
   );
 };

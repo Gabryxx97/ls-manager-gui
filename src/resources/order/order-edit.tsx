@@ -4,6 +4,7 @@ import { CustomToolbar } from "../../components/custom-toolbar";
 import { OrderForm } from "./order-form";
 import { sanitizeOrder, validateOrderForm } from "./order-form-utils";
 import { OrderWorkflow } from "./order-workflow";
+import { OrderExportButton } from "./order-export";
 
 const OrderEditTitle = () => {
   const record = useRecordContext<WarehouseOrder>();
@@ -48,13 +49,18 @@ const OrderEditContent = () => {
   if (!structurallyEditable) return <OrderWorkflow order={record} />;
 
   return (
-    <SimpleForm
-      mode="onChange"
-      reValidateMode="onChange"
-      validate={validateOrderForm}
-      toolbar={<CustomToolbar disableInvalid />}
-    >
-      <OrderForm />
-    </SimpleForm>
+    <>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <OrderExportButton order={record} />
+      </div>
+      <SimpleForm
+        mode="onChange"
+        reValidateMode="onChange"
+        validate={validateOrderForm}
+        toolbar={<CustomToolbar disableInvalid />}
+      >
+        <OrderForm />
+      </SimpleForm>
+    </>
   );
 };

@@ -57,9 +57,11 @@ export type WarehouseOrder = {
 
 export type WarehouseOrderDetail = {
   id: number;
-  articleId: number;
+  articleId?: number | null;
+  custom: boolean;
   articleSku: string;
   articleDescription: string;
+  unitOfMeasure?: string | null;
   quantity: number;
   status: OrderDetailStatus;
   pickedQuantity: number;

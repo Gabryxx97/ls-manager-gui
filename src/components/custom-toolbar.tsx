@@ -17,7 +17,9 @@ export const CustomToolbar = ({ disableInvalid = false }: { disableInvalid?: boo
   const { isValid } = useFormState();
   const { control } = useFormContext();
   const details = useWatch({ control, name: "details" }) ?? [];
-  const ids = details.map((detail: { articleId?: number }) => detail.articleId).filter((id: number | undefined): id is number => id != null);
+  const ids = details
+    .map((detail: { articleId?: number | null }) => detail.articleId)
+    .filter((id: number | null | undefined): id is number => id != null);
   const { data: articles = [] } = useGetMany<Article>("articles", { ids }, { enabled: resource === "orders" && ids.length > 0 });
   const byId = new Map(articles.map((article) => [article.id, article]));
   const total = details.every((detail: { articleId?: number; quantity?: number; unitPrice?: number | string | null }) => (detail.unitPrice ?? byId.get(detail.articleId ?? -1)?.unitPrice) != null)

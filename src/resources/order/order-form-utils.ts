@@ -2,10 +2,12 @@ import { FieldValues } from "react-hook-form";
 
 export type OrderFormDetail = {
   articleId?: number;
+  custom?: boolean;
   quantity?: number;
   unitPrice?: number | string | null;
   articleSku?: string | null;
   articleDescription?: string | null;
+  unitOfMeasure?: string | null;
 };
 
 export type OrderFormData = {
@@ -29,10 +31,15 @@ export const sanitizeOrder = (data: OrderFormData) => ({
   priority: data.priority,
   category: data.category,
   notes: data.notes,
-  details: (data.details ?? []).map(({ articleId, quantity }) => ({
-    articleId,
-    quantity,
-  })),
+  details: (data.details ?? []).map((detail) => detail.articleId != null
+    ? { articleId: detail.articleId, quantity: detail.quantity }
+    : {
+        quantity: detail.quantity,
+        articleDescription: detail.articleDescription?.trim(),
+        articleSku: detail.articleSku?.trim() || null,
+        unitOfMeasure: detail.unitOfMeasure?.trim() || null,
+        unitPrice: detail.unitPrice,
+      }),
 });
 
 export const validateOrderForm = (values: FieldValues, minimumDate?: string) => {
@@ -63,10 +70,18 @@ export const validateOrderForm = (values: FieldValues, minimumDate?: string) => 
 
   errors.details = details.map((detail) => {
     const detailErrors: Record<string, string> = {};
-    if (detail?.articleId == null) {
-      detailErrors.articleId = "L'articolo è obbligatorio";
-    } else if ((occurrences.get(detail.articleId) ?? 0) > 1) {
+    if (detail?.articleId != null && (occurrences.get(detail.articleId) ?? 0) > 1) {
       detailErrors.articleId = "L'articolo è già presente nell'ordine";
+    } else if (detail?.articleId == null) {
+      if (!detail.articleDescription?.trim()) {
+        detailErrors.articleDescription = "La descrizione è obbligatoria";
+      }
+      const price = detail.unitPrice === "" || detail.unitPrice == null
+        ? Number.NaN
+        : Number(detail.unitPrice);
+      if (!Number.isFinite(price) || price < 0 || !/^\d+(?:\.\d{1,2})?$/.test(String(detail.unitPrice))) {
+        detailErrors.unitPrice = "Inserisci un prezzo valido con massimo due decimali";
+      }
     }
     if (detail?.quantity == null) {
       detailErrors.quantity = "La quantità è obbligatoria";

@@ -93,3 +93,13 @@ export async function httpRequest<T = unknown>(
     json: (await parseBody(response)) as T,
   };
 }
+
+export async function downloadRequest(url: string): Promise<{ blob: Blob; headers: Headers }> {
+  let response = await rawRequest(url, { headers: { Accept: "application/octet-stream" } });
+  if (response.status === 401) {
+    await refreshSession();
+    response = await rawRequest(url, { headers: { Accept: "application/octet-stream" } });
+  }
+  if (!response.ok) throw await errorFromResponse(response);
+  return { blob: await response.blob(), headers: response.headers };
+}

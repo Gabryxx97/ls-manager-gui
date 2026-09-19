@@ -26,6 +26,7 @@ import {
   WarehouseOrder,
   WarehouseOrderDetail,
 } from "../../types";
+import { OrderExportButton } from "./order-export";
 
 const detailPresentation: Record<
   OrderDetailStatus,
@@ -95,6 +96,7 @@ const WorkflowLine = ({
             <Typography className="ls-mono" color="primary" variant="caption">
               {detail.articleSku}
             </Typography>
+            {detail.custom && <Chip size="small" label="Non censito" variant="outlined" />}
             <Chip size="small" label={presentation.label} color={presentation.color} />
           </Stack>
           <Typography sx={{ mt: 0.75, fontWeight: 600 }}>
@@ -106,6 +108,7 @@ const WorkflowLine = ({
           </Typography>
           <Typography variant="caption" color="text.secondary">
             {money(detail.unitPrice)} cad. · Subtotale {money(detail.subtotal)}
+            {detail.unitOfMeasure && ` · U.M. ${detail.unitOfMeasure}`}
           </Typography>
         </Box>
 
@@ -227,6 +230,7 @@ export const OrderWorkflow = ({ order }: { order: WarehouseOrder }) => {
               color={order.status === "PROCESSING" ? "info" : order.status === "COMPLETED" ? "success" : "error"}
             />
             <Typography variant="body2">Totale netto: <strong>{money(order.netTotal)}</strong></Typography>
+            <OrderExportButton order={order} />
           </Stack>
         </Stack>
       </Paper>

@@ -12,7 +12,13 @@ import {
 } from "react-admin";
 import {
   Box,
+  Button,
   Card,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   InputAdornment,
   Paper,
@@ -30,6 +36,7 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
@@ -44,7 +51,7 @@ import {
 import { Article } from "../../types";
 import { WarehouseOrder } from "../../types";
 import { useRedirect } from "react-admin";
-import { OrderFormData } from "./order-form-utils";
+import { OrderFormData, OrderFormDetail } from "./order-form-utils";
 
 const categoryChoices = [
   { id: "HYDRAULIC", name: "Idrico" },
@@ -63,6 +70,14 @@ const money = (value: number | string | null | undefined) =>
   value == null ? "—" : `€ ${Number(value).toFixed(2)}`;
 const priceOf = (article?: Article) =>
   article?.unitPrice == null ? undefined : Number(article.unitPrice);
+
+type CustomArticleDraft = {
+  description: string;
+  sku: string;
+  unitOfMeasure: string;
+  unitPrice: string;
+  quantity: string;
+};
 
 const OrderDetailsEditor = () => {
   const theme = useTheme();
@@ -94,7 +109,16 @@ const OrderDetailsEditor = () => {
       ? priceOf(articleById.get(detail.articleId ?? -1))
       : Number(detail.unitPrice);
   const [query, setQuery] = useState("");
-  const { data: searchResults = [], isPending: searching } =
+  const [customDialogOpen, setCustomDialogOpen] = useState(false);
+  const [customEditIndex, setCustomEditIndex] = useState<number | null>(null);
+  const [customDraft, setCustomDraft] = useState<CustomArticleDraft>({
+    description: "",
+    sku: "",
+    unitOfMeasure: "",
+    unitPrice: "",
+    quantity: "1",
+  });
+  const { data: searchResults = [], isPending: searching, error: searchError } =
     useGetList<Article>(
       "articles",
       {
@@ -114,7 +138,9 @@ const OrderDetailsEditor = () => {
     }));
     return sorted
       ? [...source].sort((a, b) =>
-          (a.article?.sku ?? "").localeCompare(b.article?.sku ?? ""),
+          (a.article?.sku ?? a.detail?.articleSku ?? "").localeCompare(
+            b.article?.sku ?? b.detail?.articleSku ?? "",
+          ),
         )
       : source;
   }, [articleById, details, fields, sorted]);
@@ -155,6 +181,56 @@ const OrderDetailsEditor = () => {
       shouldDirty: true,
       shouldValidate: true,
     });
+  };
+  const openCustomCreate = () => {
+    setCustomEditIndex(null);
+    setCustomDraft({
+      description: query.trim(),
+      sku: "",
+      unitOfMeasure: "",
+      unitPrice: "",
+      quantity: "1",
+    });
+    setCustomDialogOpen(true);
+  };
+  const openCustomEdit = (index: number) => {
+    const detail = details[index];
+    setCustomEditIndex(index);
+    setCustomDraft({
+      description: detail?.articleDescription ?? "",
+      sku: detail?.articleSku === "NON CENSITO" ? "" : detail?.articleSku ?? "",
+      unitOfMeasure: detail?.unitOfMeasure ?? "",
+      unitPrice: detail?.unitPrice == null ? "" : String(detail.unitPrice),
+      quantity: String(detail?.quantity ?? 1),
+    });
+    setCustomDialogOpen(true);
+  };
+  const customPrice = Number(customDraft.unitPrice);
+  const customQuantity = Number(customDraft.quantity);
+  const customDraftValid = customDraft.description.trim().length > 0
+    && customDraft.description.trim().length <= 2000
+    && customDraft.sku.trim().length <= 64
+    && customDraft.unitOfMeasure.trim().length <= 16
+    && /^\d+(?:\.\d{1,2})?$/.test(customDraft.unitPrice)
+    && Number.isFinite(customPrice)
+    && customPrice >= 0
+    && customPrice <= 9999999999.99
+    && Number.isInteger(customQuantity)
+    && customQuantity > 0;
+  const saveCustomArticle = () => {
+    if (!customDraftValid) return;
+    const detail: OrderFormDetail = {
+      custom: true,
+      articleDescription: customDraft.description.trim(),
+      articleSku: customDraft.sku.trim() || null,
+      unitOfMeasure: customDraft.unitOfMeasure.trim() || null,
+      unitPrice: customPrice,
+      quantity: customQuantity,
+    };
+    if (customEditIndex == null) append(detail);
+    else update(customEditIndex, detail);
+    setCustomDialogOpen(false);
+    setQuery("");
   };
   const searchField = (
     <TextField
@@ -197,10 +273,18 @@ const OrderDetailsEditor = () => {
           Ricerca…
         </Typography>
       )}
-      {!searching && searchResults.length === 0 && (
-        <Typography sx={{ p: 1.5 }} color="text.secondary">
-          Nessun articolo trovato
+      {!searching && searchError && (
+        <Typography sx={{ p: 1.5 }} color="error">
+          Ricerca non disponibile. Riprova tra poco.
         </Typography>
+      )}
+      {!searching && !searchError && searchResults.length === 0 && (
+        <Stack spacing={1} sx={{ p: 1.5, alignItems: "flex-start" }}>
+          <Typography color="text.secondary">Nessun articolo trovato</Typography>
+          <Button type="button" variant="outlined" size="small" onClick={openCustomCreate}>
+            Aggiungi “{query.trim()}” come articolo non censito
+          </Button>
+        </Stack>
       )}
       {searchResults.map((article) => (
         <Box
@@ -238,6 +322,9 @@ const OrderDetailsEditor = () => {
   );
   const rowContent = (row: (typeof rows)[number]) => {
     const article = row.article;
+    const custom = row.detail?.articleId == null;
+    const displaySku = article?.sku || row.detail?.articleSku || (custom ? "NON CENSITO" : "—");
+    const displayDescription = article?.description || row.detail?.articleDescription || "Articolo non disponibile";
     const quantity = Number(row.detail?.quantity ?? 1);
     const unitPrice = rowPrice(row.detail ?? {});
     const subtotal = unitPrice == null ? undefined : unitPrice * quantity;
@@ -257,25 +344,28 @@ const OrderDetailsEditor = () => {
           }}
         >
           <Box sx={{ minWidth: 0 }}>
-            <Typography
-              component="span"
-              className="ls-mono"
-              variant="caption"
-              sx={{
-                bgcolor: "primary.light",
-                color: "primary.dark",
-                px: 0.75,
-                py: 0.25,
-              }}
-            >
-              {article?.sku || "—"}
-            </Typography>
+            <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+              <Typography
+                component="span"
+                className="ls-mono"
+                variant="caption"
+                sx={{
+                  bgcolor: "primary.light",
+                  color: "primary.dark",
+                  px: 0.75,
+                  py: 0.25,
+                }}
+              >
+                {displaySku}
+              </Typography>
+              {custom && <Chip size="small" label="Non censito" variant="outlined" />}
+            </Stack>
             <Typography
               component="h3"
               variant="body2"
               sx={{ mt: 0.75, overflowWrap: "anywhere", fontWeight: 600 }}
             >
-              {article?.description || row.detail?.articleDescription || "Articolo non disponibile"}
+              {displayDescription}
             </Typography>
             <Typography
               variant="caption"
@@ -283,16 +373,28 @@ const OrderDetailsEditor = () => {
               color="text.secondary"
             >
               Prezzo unitario: <strong>{money(unitPrice)}</strong>
+              {row.detail?.unitOfMeasure && ` · ${row.detail.unitOfMeasure}`}
             </Typography>
           </Box>
-          <IconButton
-            aria-label={`Rimuovi ${article?.description ?? "articolo"}`}
-            onClick={() => remove(row.index)}
-            color="inherit"
-            size="small"
-          >
-            <DeleteIcon />
-          </IconButton>
+          <Stack direction="row">
+            {custom && (
+              <IconButton
+                aria-label={`Modifica ${displayDescription}`}
+                onClick={() => openCustomEdit(row.index)}
+                size="small"
+              >
+                <EditIcon />
+              </IconButton>
+            )}
+            <IconButton
+              aria-label={`Rimuovi ${displayDescription}`}
+              onClick={() => remove(row.index)}
+              color="inherit"
+              size="small"
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Stack>
         </Stack>
         <Stack
           direction="row"
@@ -345,9 +447,19 @@ const OrderDetailsEditor = () => {
     ) : (
       <TableRow key={row.field.id}>
         <TableCell className="ls-mono">
-          {article?.sku || row.detail?.articleSku || "—"}
+          <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+            <span>{displaySku}</span>
+            {custom && <Chip size="small" label="Non censito" variant="outlined" />}
+          </Stack>
         </TableCell>
-        <TableCell>{article?.description || row.detail?.articleDescription || "Articolo non disponibile"}</TableCell>
+        <TableCell>
+          {displayDescription}
+          {row.detail?.unitOfMeasure && (
+            <Typography sx={{ display: "block" }} variant="caption" color="text.secondary">
+              U.M. {row.detail.unitOfMeasure}
+            </Typography>
+          )}
+        </TableCell>
         <TableCell align="right">{money(unitPrice)}</TableCell>
         <TableCell align="right">
           <Controller
@@ -369,8 +481,16 @@ const OrderDetailsEditor = () => {
         </TableCell>
         <TableCell align="right">{money(subtotal)}</TableCell>
         <TableCell align="right">
+          {custom && (
+            <IconButton
+              aria-label={`Modifica ${displayDescription}`}
+              onClick={() => openCustomEdit(row.index)}
+            >
+              <EditIcon />
+            </IconButton>
+          )}
           <IconButton
-            aria-label={`Rimuovi ${article?.description ?? "articolo"}`}
+            aria-label={`Rimuovi ${displayDescription}`}
             onClick={() => remove(row.index)}
           >
             <DeleteIcon />
@@ -455,6 +575,78 @@ const OrderDetailsEditor = () => {
           Totale netto: <strong>{money(total)}</strong>
         </Typography>
       </Stack>
+      <Dialog
+        open={customDialogOpen}
+        onClose={() => setCustomDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          {customEditIndex == null ? "Aggiungi articolo non censito" : "Modifica articolo non censito"}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <TextField
+              autoFocus
+              required
+              label="Descrizione"
+              value={customDraft.description}
+              onChange={(event) => setCustomDraft((value) => ({ ...value, description: event.target.value }))}
+              error={customDraft.description.length > 2000}
+              helperText={`${customDraft.description.length}/2000`}
+              multiline
+              minRows={2}
+            />
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <TextField
+                label="Codice (facoltativo)"
+                value={customDraft.sku}
+                onChange={(event) => setCustomDraft((value) => ({ ...value, sku: event.target.value }))}
+                error={customDraft.sku.length > 64}
+                slotProps={{ htmlInput: { maxLength: 65 } }}
+                fullWidth
+              />
+              <TextField
+                label="Unità di misura (facoltativa)"
+                value={customDraft.unitOfMeasure}
+                onChange={(event) => setCustomDraft((value) => ({ ...value, unitOfMeasure: event.target.value }))}
+                error={customDraft.unitOfMeasure.length > 16}
+                slotProps={{ htmlInput: { maxLength: 17 } }}
+                fullWidth
+              />
+            </Stack>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <TextField
+                required
+                label="Prezzo unitario"
+                type="number"
+                value={customDraft.unitPrice}
+                onChange={(event) => setCustomDraft((value) => ({ ...value, unitPrice: event.target.value }))}
+                slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
+                error={customDraft.unitPrice.length > 0 && (!/^\d+(?:\.\d{1,2})?$/.test(customDraft.unitPrice) || customPrice < 0 || customPrice > 9999999999.99)}
+                helperText="Importo in euro, massimo due decimali"
+                fullWidth
+              />
+              <TextField
+                required
+                label="Quantità"
+                type="number"
+                value={customDraft.quantity}
+                onChange={(event) => setCustomDraft((value) => ({ ...value, quantity: event.target.value }))}
+                slotProps={{ htmlInput: { min: 1, step: 1 } }}
+                error={customDraft.quantity.length > 0 && (!Number.isInteger(customQuantity) || customQuantity <= 0)}
+                fullWidth
+              />
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCustomDialogOpen(false)}>Annulla</Button>
+          <Button variant="contained" disabled={!customDraftValid} onClick={saveCustomArticle}>
+            {customEditIndex == null ? "Aggiungi" : "Salva"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 };

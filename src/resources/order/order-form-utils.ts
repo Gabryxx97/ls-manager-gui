@@ -19,6 +19,9 @@ export type OrderFormData = {
   details?: OrderFormDetail[];
 };
 
+export const formatMoney = (value: number | string | null | undefined) =>
+  value == null ? "—" : `€ ${Number(value).toFixed(2)}`;
+
 export const dateWithOffset = (days: number) => {
   const date = new Date();
   date.setDate(date.getDate() + days);

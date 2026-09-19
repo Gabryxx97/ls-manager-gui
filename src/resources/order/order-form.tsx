@@ -8,6 +8,7 @@ import {
   TextInput,
   useGetList,
   useGetMany,
+  useGetOne,
   useRecordContext,
 } from "react-admin";
 import {
@@ -40,18 +41,22 @@ import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
+import FlagOutlinedIcon from "@mui/icons-material/FlagOutlined";
+import NotesOutlinedIcon from "@mui/icons-material/NotesOutlined";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import { useMemo, useState } from "react";
 import {
   Controller,
   useFieldArray,
   useFormContext,
+  useFormState,
   useWatch,
 } from "react-hook-form";
-import { Article } from "../../types";
-import { WarehouseOrder } from "../../types";
-import { useRedirect } from "react-admin";
-import { OrderFormData, OrderFormDetail } from "./order-form-utils";
+import { Article, WarehouseOrder, WorkOrder } from "../../types";
+import { formatMoney, OrderFormData, OrderFormDetail } from "./order-form-utils";
 
 const categoryChoices = [
   { id: "HYDRAULIC", name: "Idrico" },
@@ -66,8 +71,7 @@ const priorityChoices = [
   { id: "HIGH", name: "Alta" },
 ];
 
-const money = (value: number | string | null | undefined) =>
-  value == null ? "—" : `€ ${Number(value).toFixed(2)}`;
+const money = formatMoney;
 const priceOf = (article?: Article) =>
   article?.unitPrice == null ? undefined : Number(article.unitPrice);
 
@@ -79,10 +83,11 @@ type CustomArticleDraft = {
   quantity: string;
 };
 
-const OrderDetailsEditor = () => {
+export const OrderDetailsEditor = () => {
   const theme = useTheme();
-  const mobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const mobile = useMediaQuery(theme.breakpoints.down("md"));
   const { control, setValue } = useFormContext<OrderFormData>();
+  const { errors } = useFormState({ control });
   const { fields, append, update, remove } = useFieldArray({
     control,
     name: "details",
@@ -560,6 +565,11 @@ const OrderDetailsEditor = () => {
           </Table>
         </TableContainer>
       )}
+      {typeof errors.details?.message === "string" && (
+        <Typography role="alert" variant="body2" color="error">
+          {errors.details.message}
+        </Typography>
+      )}
       <Stack
         direction="row"
         sx={{ justifyContent: "flex-end", alignItems: "center", gap: 1 }}
@@ -651,74 +661,86 @@ const OrderDetailsEditor = () => {
   );
 };
 
-export const OrderForm = ({
-  mobileHeader = false,
-  minimumDate,
+const choiceLabel = (
+  choices: { id: string; name: string }[],
+  value?: string,
+) => choices.find((choice) => choice.id === value)?.name ?? "—";
+
+const SectionHeading = ({
+  id,
+  icon,
+  title,
+  description,
 }: {
-  mobileHeader?: boolean;
-  minimumDate?: string;
-}) => {
-  const theme = useTheme();
-  const mobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const redirect = useRedirect();
-  const record = useRecordContext<WarehouseOrder>();
-  return (
-    <Stack spacing={3} sx={{ width: "100%", pb: { xs: 8, sm: 0 } }}>
-      {mobileHeader && (
-        <Stack
-          direction="row"
-          sx={{
-            display: { xs: "flex", sm: "none" },
-            alignItems: "center",
-            justifyContent: "space-between",
-            py: 0.5,
-          }}
-        >
-          <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
-            <IconButton
-              aria-label="Torna indietro"
-              onClick={() => redirect("list", "orders")}
-            >
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography component="h1" variant="h2">
-              Nuovo ordine
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{ bgcolor: "action.hover", px: 1, py: 0.5, borderRadius: 2 }}
-            >
-              In lavorazione
-            </Typography>
-          </Stack>
-          <IconButton
-            aria-label="Annulla"
-            color="error"
-            onClick={() => redirect("list", "orders")}
-          >
-            <Typography variant="button">Annulla</Typography>
-          </IconButton>
-        </Stack>
-      )}
-      <Paper
-        component="section"
-        aria-labelledby="order-header-title"
-        sx={{ p: { xs: 2, sm: 3 } }}
-      >
-        <Typography
-          id="order-header-title"
-          component="h2"
-          variant="h3"
-          sx={{ mb: 2 }}
-        >
-          Informazioni ordine
+  id?: string;
+  icon: React.ReactNode;
+  title: string;
+  description?: string;
+}) => (
+  <Stack direction="row" spacing={1.25} sx={{ alignItems: "flex-start", mb: 2.5 }}>
+    <Box
+      sx={{
+        display: "grid",
+        placeItems: "center",
+        width: 36,
+        height: 36,
+        flex: "0 0 auto",
+        borderRadius: 2,
+        color: "primary.dark",
+        bgcolor: "primary.light",
+      }}
+    >
+      {icon}
+    </Box>
+    <Box>
+      <Typography id={id} component="h2" variant="h3">
+        {title}
+      </Typography>
+      {description && (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
+          {description}
         </Typography>
-        {record && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Magazziniere assegnato: {record.assignedWarehouseName ?? "Non assegnato"}
-          </Typography>
-        )}
-        <Stack spacing={2}>
+      )}
+    </Box>
+  </Stack>
+);
+
+export const OrderInformationFields = ({ minimumDate }: { minimumDate?: string }) => {
+  const record = useRecordContext<WarehouseOrder>();
+  const { control } = useFormContext<OrderFormData>();
+  const notes = useWatch({ control, name: "notes" }) ?? "";
+  return (
+    <Paper
+      component="section"
+      aria-labelledby="order-header-title"
+      variant="outlined"
+      sx={{
+        p: { xs: 2, sm: 3 },
+        borderRadius: 3,
+        "& .MuiInputBase-root": { minHeight: { xs: 44, sm: 40 } },
+      }}
+    >
+      <SectionHeading
+        id="order-header-title"
+        icon={<AssignmentOutlinedIcon fontSize="small" />}
+        title="Informazioni ordine"
+        description="Inserisci i dati principali della richiesta."
+      />
+      {record && (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Magazziniere assegnato: {record.assignedWarehouseName ?? "Non assegnato"}
+        </Typography>
+      )}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" },
+          columnGap: 2,
+          rowGap: 0.5,
+          "& .RaInput-root": { width: "100%" },
+        }}
+      >
+        <Box sx={{ gridColumn: { md: "1 / -1" } }}>
           <ReferenceInput
             source="workOrderId"
             reference="workorders"
@@ -734,53 +756,206 @@ export const OrderForm = ({
               fullWidth
             />
           </ReferenceInput>
-          <SelectInput
-            source="category"
-            label="Categoria ordine"
-            choices={categoryChoices}
-            validate={required("La categoria è obbligatoria")}
-            fullWidth
-          />
+        </Box>
+        <SelectInput
+          source="category"
+          label="Categoria ordine"
+          choices={categoryChoices}
+          validate={required("La categoria è obbligatoria")}
+          fullWidth
+        />
+        <DateInput
+          source="date"
+          label="Data"
+          validate={required("La data è obbligatoria")}
+          slotProps={{ htmlInput: minimumDate ? { min: minimumDate } : undefined }}
+          fullWidth
+        />
+        <SelectInput
+          source="priority"
+          label="Priorità"
+          choices={priorityChoices}
+          validate={required("La priorità è obbligatoria")}
+          fullWidth
+        />
+        <Box sx={{ display: { xs: "none", md: "block" } }} />
+        <Box sx={{ gridColumn: { md: "1 / -1" } }}>
           <TextInput
             source="notes"
-            label="Note"
+            label="Note (facoltative)"
             multiline
-            minRows={mobile ? 2 : 3}
+            minRows={3}
+            helperText={`${notes.length}/2.000 caratteri`}
             validate={maxLength(
               2000,
               "Le note non possono superare 2.000 caratteri",
             )}
             fullWidth
           />
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={2}
-            sx={{ display: { xs: "none", sm: "flex" } }}
-          >
-            <DateInput
-              source="date"
-              label="Data"
-              validate={required("La data è obbligatoria")}
-              slotProps={{ htmlInput: minimumDate ? { min: minimumDate } : undefined }}
-              fullWidth
-            />
-            <SelectInput
-              source="priority"
-              label="Priorità"
-              choices={priorityChoices}
-              validate={required("La priorità è obbligatoria")}
-              fullWidth
-            />
-          </Stack>
+        </Box>
+      </Box>
+    </Paper>
+  );
+};
+
+export const OrderDetailsSection = () => (
+  <Paper
+    component="section"
+    aria-labelledby="order-details-title"
+    variant="outlined"
+    sx={{
+      p: { xs: 2, sm: 3 },
+      borderRadius: 3,
+      "& .MuiInputBase-root": { minHeight: { xs: 44, sm: 40 } },
+    }}
+  >
+    <SectionHeading
+      id="order-details-title"
+      icon={<ReceiptLongOutlinedIcon fontSize="small" />}
+      title="Articoli dell'ordine"
+      description="Cerca gli articoli e indica le quantità necessarie."
+    />
+    <OrderDetailsEditor />
+  </Paper>
+);
+
+const ReviewDatum = ({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+}) => (
+  <Stack direction="row" spacing={1.25} sx={{ minWidth: 0, alignItems: "flex-start" }}>
+    <Box sx={{ color: "text.secondary", mt: 0.25, display: "flex" }}>{icon}</Box>
+    <Box sx={{ minWidth: 0 }}>
+      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+        {label}
+      </Typography>
+      <Typography variant="body2" sx={{ fontWeight: 600, overflowWrap: "anywhere" }}>
+        {value || "—"}
+      </Typography>
+    </Box>
+  </Stack>
+);
+
+export const OrderReview = ({ onEdit }: { onEdit: (step: number) => void }) => {
+  const { control } = useFormContext<OrderFormData>();
+  const values = useWatch({ control });
+  const details = useMemo(() => values.details ?? [], [values.details]);
+  const workOrderId = values.workOrderId;
+  const { data: workOrder } = useGetOne<WorkOrder>(
+    "workorders",
+    { id: Number(workOrderId) },
+    { enabled: workOrderId != null },
+  );
+  const articleIds = details
+    .map((detail) => detail?.articleId)
+    .filter((id): id is number => id != null);
+  const { data: articles = [] } = useGetMany<Article>(
+    "articles",
+    { ids: articleIds },
+    { enabled: articleIds.length > 0 },
+  );
+  const articleById = new Map(articles.map((article) => [article.id, article]));
+  const totalPieces = details.reduce(
+    (sum, detail) => sum + Number(detail?.quantity ?? 0),
+    0,
+  );
+  const total = details.every((detail) =>
+    (detail?.unitPrice ?? articleById.get(detail?.articleId ?? -1)?.unitPrice) != null,
+  )
+    ? details.reduce(
+        (sum, detail) =>
+          sum
+          + Number(detail?.unitPrice ?? articleById.get(detail?.articleId ?? -1)?.unitPrice)
+            * Number(detail?.quantity ?? 0),
+        0,
+      )
+    : undefined;
+  const formattedDate = values.date
+    ? new Date(`${values.date}T00:00:00`).toLocaleDateString("it-IT")
+    : "—";
+
+  return (
+    <Stack spacing={2}>
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3 }}>
+        <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2.5 }}>
+          <Typography component="h2" variant="h3">Informazioni ordine</Typography>
+          <Button type="button" size="small" onClick={() => onEdit(0)}>Modifica</Button>
         </Stack>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+            gap: 2,
+          }}
+        >
+          <ReviewDatum icon={<AssignmentOutlinedIcon fontSize="small" />} label="Commessa" value={workOrder?.name} />
+          <ReviewDatum icon={<CategoryOutlinedIcon fontSize="small" />} label="Categoria" value={choiceLabel(categoryChoices, values.category)} />
+          <ReviewDatum icon={<CalendarTodayOutlinedIcon fontSize="small" />} label="Data" value={formattedDate} />
+          <ReviewDatum icon={<FlagOutlinedIcon fontSize="small" />} label="Priorità" value={choiceLabel(priorityChoices, values.priority)} />
+          {values.notes && (
+            <Box sx={{ gridColumn: { sm: "1 / -1" } }}>
+              <ReviewDatum icon={<NotesOutlinedIcon fontSize="small" />} label="Note" value={values.notes} />
+            </Box>
+          )}
+        </Box>
       </Paper>
-      <Paper
-        component="section"
-        aria-labelledby="order-details-title"
-        sx={{ p: { xs: 2, sm: 3 } }}
-      >
-        <OrderDetailsEditor />
+
+      <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3 }}>
+        <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+          <Box>
+            <Typography component="h2" variant="h3">Articoli</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {details.length} {details.length === 1 ? "articolo" : "articoli"} · {totalPieces} pezzi
+            </Typography>
+          </Box>
+          <Button type="button" size="small" onClick={() => onEdit(1)}>Modifica</Button>
+        </Stack>
+        <Stack spacing={1} divider={<Box sx={{ borderTop: "1px solid", borderColor: "divider" }} />}>
+          {details.map((detail, index) => {
+            const article = articleById.get(detail?.articleId ?? -1);
+            const sku = article?.sku || detail?.articleSku || "NON CENSITO";
+            const description = article?.description || detail?.articleDescription || "Articolo non disponibile";
+            const unitPrice = detail?.unitPrice ?? article?.unitPrice;
+            const quantity = Number(detail?.quantity ?? 0);
+            return (
+              <Stack
+                key={`${detail?.articleId ?? "custom"}-${index}`}
+                direction="row"
+                spacing={2}
+                sx={{ justifyContent: "space-between", alignItems: "center", py: 1 }}
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography className="ls-mono" variant="caption" color="primary.dark">{sku}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, overflowWrap: "anywhere" }}>{description}</Typography>
+                  <Typography variant="caption" color="text.secondary">{quantity} × {money(unitPrice)}</Typography>
+                </Box>
+                <Typography className="ls-mono" sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>
+                  {money(unitPrice == null ? undefined : Number(unitPrice) * quantity)}
+                </Typography>
+              </Stack>
+            );
+          })}
+        </Stack>
+        <Stack
+          direction="row"
+          sx={{ justifyContent: "space-between", alignItems: "baseline", mt: 2, pt: 2, borderTop: "2px solid", borderColor: "divider" }}
+        >
+          <Typography sx={{ fontWeight: 600 }}>Totale netto</Typography>
+          <Typography variant="h2" color="primary.dark" className="ls-mono">{money(total)}</Typography>
+        </Stack>
       </Paper>
     </Stack>
   );
 };
+
+export const OrderForm = ({ minimumDate }: { minimumDate?: string }) => (
+  <Stack spacing={3} sx={{ width: "100%", pb: { xs: 16, sm: 0 } }}>
+    <OrderInformationFields minimumDate={minimumDate} />
+    <OrderDetailsSection />
+  </Stack>
+);

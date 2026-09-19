@@ -1,3 +1,6 @@
+import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
+import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
+import PersonRemoveOutlinedIcon from "@mui/icons-material/PersonRemoveOutlined";
 import {
   Button,
   Dialog,
@@ -12,7 +15,13 @@ import {
   Typography,
 } from "@mui/material";
 import { useState } from "react";
-import { useGetList, useNotify, usePermissions, useRefresh } from "react-admin";
+import {
+  Button as RaButton,
+  useGetList,
+  useNotify,
+  usePermissions,
+  useRefresh,
+} from "react-admin";
 import { apiUrl, httpRequest } from "../../http-client";
 import { User, WarehouseOrder } from "../../types";
 
@@ -62,27 +71,33 @@ export const OrderAssignmentActions = ({ order }: { order: WarehouseOrder }) => 
     <>
       <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
         {isWarehouse && !order.assignedWarehouseId && canBeAssigned(order) && (
-          <Button
+          <RaButton
             size="small"
             variant="contained"
+            label="Prendi in carico"
             onClick={() => execute(`${apiUrl}/orders/${order.id}/claim`, { method: "POST" }, "Ordine preso in carico")}
           >
-            Prendi in carico
-          </Button>
+            <AssignmentTurnedInOutlinedIcon />
+          </RaButton>
         )}
         {isAdmin && canBeAssigned(order) && (
-          <Button size="small" onClick={() => setDialogOpen(true)}>
-            {order.assignedWarehouseId ? "Cambia magazziniere" : "Assegna magazziniere"}
-          </Button>
+          <RaButton
+            size="small"
+            label={order.assignedWarehouseId ? "Cambia magazziniere" : "Assegna magazziniere"}
+            onClick={() => setDialogOpen(true)}
+          >
+            <PersonAddAltOutlinedIcon />
+          </RaButton>
         )}
         {isAdmin && order.assignedWarehouseId && (
-          <Button
+          <RaButton
             size="small"
             color="warning"
+            label="Revoca"
             onClick={() => execute(`${apiUrl}/orders/${order.id}/assignee`, { method: "DELETE" }, "Assegnazione revocata")}
           >
-            Revoca
-          </Button>
+            <PersonRemoveOutlinedIcon />
+          </RaButton>
         )}
       </Stack>
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="xs">

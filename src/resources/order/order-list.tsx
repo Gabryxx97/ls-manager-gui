@@ -1,5 +1,6 @@
 import AddIcon from "@mui/icons-material/Add";
 import {
+  Box,
   Card,
   CardActions,
   CardContent,
@@ -15,6 +16,7 @@ import {
   CreateButton,
   Datagrid,
   EditButton,
+  FilterButton,
   FunctionField,
   List,
   Pagination,
@@ -29,7 +31,12 @@ import {
 import { useNavigate } from "react-router-dom";
 import { CustomDeleteButton } from "../../components/custom-delete-button";
 import { CustomEmpty } from "../../components/custom-empty";
-import { OrderPriority, OrderStatus, WarehouseOrder } from "../../types";
+import {
+  OrderCategory,
+  OrderPriority,
+  OrderStatus,
+  WarehouseOrder,
+} from "../../types";
 import {
   AssignedWarehouse,
   OrderAssignmentActions,
@@ -41,11 +48,13 @@ const statusChoices = [
   { id: "CANCELED", name: "Annullato" },
 ];
 
-const priorityChoices = [
-  { id: "LOW", name: "Bassa" },
-  { id: "STANDARD", name: "Standard" },
-  { id: "HIGH", name: "Alta" },
-];
+const categoryPresentation: Record<OrderCategory, string> = {
+  HYDRAULIC: "Idrico",
+  ELECTRICAL: "Elettrico",
+  CONSTRUCTION_CARPENTRY: "Edile - carpenteria",
+  HARDWARE_MISC: "Ferramenta e varie",
+  CLOTHING: "Vestiario",
+};
 
 const statusPresentation: Record<
   OrderStatus,
@@ -88,33 +97,25 @@ const PriorityChip = ({ priority }: { priority: OrderPriority }) => {
   );
 };
 
-const orderFilters = [
-  <SearchInput
-    key="search"
-    source="search"
-    placeholder="Cerca ordini…"
-    alwaysOn
-  />,
+const createOrderFilters = (secondaryFiltersAlwaysOn: boolean) => [
+  <SearchInput key="search" source="search" alwaysOn />,
   <SelectInput
     key="status"
     source="status"
     label="Stato"
     choices={statusChoices}
-    alwaysOn
-  />,
-  <SelectInput
-    key="priority"
-    source="priority"
-    label="Priorità"
-    choices={priorityChoices}
-    alwaysOn
+    alwaysOn={secondaryFiltersAlwaysOn}
   />,
 ];
+
+const mobileOrderFilters = createOrderFilters(false);
+const desktopOrderFilters = createOrderFilters(true);
 
 const OrderActions = () => {
   const { permissions } = usePermissions();
   return (
-    <TopToolbar>
+    <TopToolbar sx={{ mt: -3 }}>
+      <FilterButton disableSaveQuery />
       {permissions !== "WAREHOUSE_ROLE" && (
         <CreateButton
           sx={{ display: { xs: "none", sm: "inline-flex" } }}
@@ -144,63 +145,71 @@ const OrderMobileCards = () => {
   const { data = [] } = useListContext<WarehouseOrder>();
 
   return (
-    <Stack spacing={1.5} component="section" aria-label="Elenco ordini">
+    <Stack spacing={1} component="section" aria-label="Elenco ordini">
       {data.map((order) => (
         <RecordContextProvider key={order.id} value={order}>
-          <Card component="article">
-            <CardContent sx={{ pb: 1 }}>
+          <Card component="article" sx={{ overflow: "hidden" }}>
+            <CardContent
+              sx={{
+                p: 1.5,
+                "&:last-child": { pb: 1.5 },
+              }}
+            >
               <Stack
                 direction="row"
-                spacing={1}
                 sx={{
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                }}
-              >
-                <Typography
-                  component="h2"
-                  variant="h3"
-                  sx={{ minWidth: 0, overflowWrap: "anywhere" }}
-                >
-                  {order.name}
-                </Typography>
-                <StatusChip status={order.status} />
-              </Stack>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mt: 1.5 }}
-              >
-                Data: {formatDate(order.date)}
-              </Typography>
-              <Stack
-                direction="row"
-                spacing={1}
-                sx={{
-                  mt: 1.5,
                   alignItems: "center",
                   flexWrap: "wrap",
-                  rowGap: 1,
+                  columnGap: 1,
+                  rowGap: 0.75,
                 }}
               >
-                <PriorityChip priority={order.priority} />
-                <Typography
-                  variant="caption"
-                  className="ls-mono"
-                  color="text.secondary"
-                >
-                  ID {order.id}
+                <Typography variant="caption" color="text.secondary">
+                  {formatDate(order.date)}
                 </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {order.category
+                    ? categoryPresentation[order.category]
+                    : "Senza categoria"}
+                </Typography>
+                <Box sx={{ ml: "auto", flexShrink: 0 }}>
+                  <StatusChip status={order.status} />
+                </Box>
               </Stack>
+              <Typography
+                component="h2"
+                variant="subtitle1"
+                sx={{
+                  mt: 1,
+                  minWidth: 0,
+                  fontWeight: 700,
+                  lineHeight: 1.35,
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {order.name}
+              </Typography>
               <Typography
                 variant="body2"
                 color="text.secondary"
-                sx={{ mt: 1.5 }}
+                sx={{ mt: 0.75 }}
               >
                 Magazziniere: <AssignedWarehouse order={order} />
               </Typography>
             </CardContent>
-            <CardActions sx={{ justifyContent: "flex-end", px: 2, pb: 1.5 }}>
+            <CardActions
+              sx={{
+                justifyContent: "flex-end",
+                flexWrap: "wrap",
+                gap: 0.5,
+                px: 1.5,
+                py: 1,
+                borderTop: "1px solid",
+                borderColor: "divider",
+                backgroundColor: "grey.50",
+                "& > *": { m: "0 !important" },
+              }}
+            >
               <OrderAssignmentActions order={order} />
               <OrderRowActions order={order} />
             </CardActions>
@@ -241,11 +250,46 @@ export const OrderList = () => {
     <>
       <List<WarehouseOrder>
         title="Ordini"
+        component="div"
         actions={<OrderActions />}
-        filters={orderFilters}
+        filters={isMobile ? mobileOrderFilters : desktopOrderFilters}
         sort={{ field: "date", order: "DESC" }}
         perPage={25}
         pagination={<Pagination rowsPerPageOptions={[10, 25, 50, 100]} />}
+        sx={{
+          "& .RaList-actions": {
+            mb: { xs: 1.5, sm: 0 },
+            gap: { xs: 1, sm: 0 },
+            alignItems: { xs: "stretch", sm: "flex-end" },
+            backgroundColor: "transparent",
+          },
+          "& .RaTopToolbar-root": {
+            width: { xs: "100%", sm: "auto" },
+            minHeight: { xs: 40, sm: "auto" },
+            mt: { xs: -1, sm: 0 },
+          },
+          "& .RaListToolbar-root, & .RaTopToolbar-root": {
+            backgroundColor: { xs: "transparent !important", sm: "initial" },
+            boxShadow: { xs: "none", sm: "initial" },
+          },
+          "& .RaFilterButton-root .MuiIconButton-root": {
+            backgroundColor: "transparent",
+          },
+          "& .RaFilterForm-root": {
+            gap: { xs: 1, sm: 0 },
+            paddingBottom: { xs: 0, sm: 0.5 },
+          },
+          "& .RaFilterForm-filterFormInput .MuiFormControl-root": {
+            width: { xs: "100%", sm: "auto" },
+            mt: { xs: 0, sm: 1 },
+          },
+          "& .RaFilterForm-filterFormInput .RaFilterFormInput-spacer": {
+            width: { xs: 0, sm: 16 },
+          },
+          "& .MuiToolbar-root": {
+            backgroundColor: "transparent",
+          },
+        }}
         empty={
           <CustomEmpty
             resourceName="ordine"

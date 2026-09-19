@@ -42,7 +42,7 @@ const ArticleActions = () => {
   const { permissions } = usePermissions();
   if (permissions !== "ADMIN_ROLE") return null;
   return (
-    <TopToolbar>
+    <TopToolbar sx={{ mt: -3 }}>
       <ArticleImportButton />
       <CreateButton
         sx={{ display: { xs: "none", sm: "inline-flex" } }}
@@ -59,42 +59,97 @@ const ArticleMobileCards = () => {
   const canManage = permissions === "ADMIN_ROLE";
 
   return (
-    <Stack spacing={1.5} component="section" aria-label="Elenco articoli">
+    <Stack spacing={1} component="section" aria-label="Elenco articoli">
       {data.map((article) => (
         <RecordContextProvider key={article.id} value={article}>
-          <Card component="article">
-            <CardContent sx={{ pb: 1 }}>
+          <Card component="article" sx={{ overflow: "hidden" }}>
+            <CardContent
+              sx={{
+                p: 1.5,
+                "&:last-child": { pb: 1.5 },
+              }}
+            >
+              <Stack
+                direction="row"
+                sx={{
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  columnGap: 1,
+                  rowGap: 0.75,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  className="ls-mono"
+                  color="primary"
+                >
+                  {article.sku}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {article.category || "Senza categoria"}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {article.costCenter || "Senza centro di costo"}
+                </Typography>
+              </Stack>
               <Typography
                 component="h2"
-                variant="h3"
-                sx={{ overflowWrap: "anywhere" }}
+                variant="subtitle1"
+                sx={{
+                  mt: 1,
+                  minWidth: 0,
+                  fontWeight: 700,
+                  lineHeight: 1.35,
+                  overflowWrap: "anywhere",
+                }}
               >
                 {article.description}
-              </Typography>
-              <Typography variant="caption" className="ls-mono" color="primary" sx={{ mt: 0.5 }}>
-                {article.sku}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                {article.category || "Senza categoria"} · {article.costCenter || "Senza centro di costo"}
               </Typography>
               <Typography
                 variant="body2"
                 color="text.secondary"
                 sx={{
-                  mt: 1.5,
+                  mt: 0.75,
                   whiteSpace: "pre-wrap",
                   overflowWrap: "anywhere",
                 }}
               >
-                Ubicazione: {article.location || "—"} · Giacenza: {article.stockQuantity == null ? "—" : `${article.stockQuantity} ${article.unitOfMeasure || ""}`.trim()}
+                Ubicazione: {article.location || "—"} · Giacenza:{" "}
+                {article.stockQuantity == null
+                  ? "—"
+                  : `${article.stockQuantity} ${article.unitOfMeasure || ""}`.trim()}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                Prezzo: {article.unitPrice == null ? "—" : `€ ${Number(article.unitPrice).toFixed(2)}`}
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                Prezzo:{" "}
+                {article.unitPrice == null
+                  ? "—"
+                  : `€ ${Number(article.unitPrice).toFixed(2)}`}
               </Typography>
             </CardContent>
-            <CardActions sx={{ justifyContent: "flex-end", px: 2, pb: 1.5 }}>
+            <CardActions
+              sx={{
+                justifyContent: "flex-end",
+                flexWrap: "wrap",
+                gap: 0.5,
+                px: 1.5,
+                py: 1,
+                borderTop: "1px solid",
+                borderColor: "divider",
+                backgroundColor: "grey.50",
+                "& > *": { m: "0 !important" },
+              }}
+            >
               {canManage && <EditButton label="Modifica" />}
-              {canManage && <CustomDeleteButton resource="articles" titleField="description" />}
+              {canManage && (
+                <CustomDeleteButton
+                  resource="articles"
+                  titleField="description"
+                />
+              )}
             </CardActions>
           </Card>
         </RecordContextProvider>
@@ -136,11 +191,46 @@ export const ArticleList = () => {
     <>
       <List<Article>
         title="Articoli"
+        component="div"
         actions={<ArticleActions />}
         filters={articleFilters}
         sort={{ field: "sku", order: "ASC" }}
         perPage={25}
         pagination={<Pagination rowsPerPageOptions={[10, 25, 50, 100]} />}
+        sx={{
+          "& .RaList-actions": {
+            mb: { xs: 1.5, sm: 0 },
+            gap: { xs: 1, sm: 0 },
+            alignItems: { xs: "stretch", sm: "flex-end" },
+            backgroundColor: "transparent",
+          },
+          "& .RaTopToolbar-root": {
+            width: { xs: "100%", sm: "auto" },
+            minHeight: { xs: 40, sm: "auto" },
+            mt: { xs: -1, sm: 0 },
+          },
+          "& .RaListToolbar-root, & .RaTopToolbar-root": {
+            backgroundColor: { xs: "transparent !important", sm: "initial" },
+            boxShadow: { xs: "none", sm: "initial" },
+          },
+          "& .RaFilterButton-root .MuiIconButton-root": {
+            backgroundColor: "transparent",
+          },
+          "& .RaFilterForm-root": {
+            gap: { xs: 1, sm: 0 },
+            paddingBottom: { xs: 0, sm: 0.5 },
+          },
+          "& .RaFilterForm-filterFormInput .MuiFormControl-root": {
+            width: { xs: "100%", sm: "auto" },
+            mt: { xs: 0, sm: 1 },
+          },
+          "& .RaFilterForm-filterFormInput .RaFilterFormInput-spacer": {
+            width: { xs: 0, sm: 16 },
+          },
+          "& .MuiToolbar-root": {
+            backgroundColor: "transparent",
+          },
+        }}
         empty={
           <CustomEmpty
             resourceName="articolo"
@@ -168,7 +258,12 @@ export const ArticleList = () => {
               render={(record) => record.unitPrice == null ? "—" : `€ ${Number(record.unitPrice).toFixed(2)}`}
             />
             {canManage && <EditButton label="Modifica" />}
-            {canManage && <CustomDeleteButton resource="articles" titleField="description" />}
+            {canManage && (
+              <CustomDeleteButton
+                resource="articles"
+                titleField="description"
+              />
+            )}
           </Datagrid>
         )}
       </List>

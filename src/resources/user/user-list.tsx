@@ -44,7 +44,7 @@ const userFilters = [
 ];
 
 const UserActions = () => (
-  <TopToolbar>
+  <TopToolbar sx={{ mt: -3 }}>
     <CreateButton
       sx={{ display: { xs: "none", sm: "inline-flex" } }}
       variant="contained"
@@ -57,49 +57,77 @@ const UserMobileCards = () => {
   const { data = [] } = useListContext<User>();
 
   return (
-    <Stack spacing={1.5} component="section" aria-label="Elenco utenti">
+    <Stack spacing={1} component="section" aria-label="Elenco utenti">
       {data.map((user) => {
         const fullName = `${user.name ?? ""} ${user.surname ?? ""}`.trim();
         return (
           <RecordContextProvider key={user.id} value={user}>
-            <Card component="article">
-              <CardContent sx={{ pb: 1 }}>
-                <Typography
-                  component="h2"
-                  variant="h3"
-                  sx={{ overflowWrap: "anywhere" }}
-                >
-                  {fullName || user.username}
-                </Typography>
-                {fullName && (
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mt: 1 }}
-                  >
-                    {user.username}
-                  </Typography>
-                )}
+            <Card component="article" sx={{ overflow: "hidden" }}>
+              <CardContent
+                sx={{
+                  p: 1.5,
+                  "&:last-child": { pb: 1.5 },
+                }}
+              >
                 <Stack
                   direction="row"
-                  spacing={1}
-                  sx={{ mt: 1.5, alignItems: "center" }}
+                  sx={{
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    columnGap: 1,
+                    rowGap: 0.75,
+                  }}
                 >
-                  <Chip
-                    label={roleLabel(user.role)}
-                    color="primary"
-                    variant="outlined"
-                  />
                   <Typography
                     variant="caption"
                     className="ls-mono"
                     color="text.secondary"
+                    sx={{ overflowWrap: "anywhere" }}
                   >
-                    ID {user.id}
+                    {user.username}
                   </Typography>
+                  <Chip
+                    label={roleLabel(user.role)}
+                    color="primary"
+                    variant="outlined"
+                    sx={{ ml: "auto", flexShrink: 0 }}
+                  />
                 </Stack>
+                <Typography
+                  component="h2"
+                  variant="subtitle1"
+                  sx={{
+                    mt: 1,
+                    minWidth: 0,
+                    fontWeight: 700,
+                    lineHeight: 1.35,
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {fullName || user.username}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  className="ls-mono"
+                  color="text.secondary"
+                  sx={{ display: "block", mt: 0.75 }}
+                >
+                  ID {user.id}
+                </Typography>
               </CardContent>
-              <CardActions sx={{ justifyContent: "flex-end", px: 2, pb: 1.5 }}>
+              <CardActions
+                sx={{
+                  justifyContent: "flex-end",
+                  flexWrap: "wrap",
+                  gap: 0.5,
+                  px: 1.5,
+                  py: 1,
+                  borderTop: "1px solid",
+                  borderColor: "divider",
+                  backgroundColor: "grey.50",
+                  "& > *": { m: "0 !important" },
+                }}
+              >
                 <EditButton label="Modifica" />
                 <CustomDeleteButton resource="users" titleField="username" />
               </CardActions>
@@ -139,11 +167,46 @@ export const UserList = () => {
     <>
       <List<User>
         title="Utenti"
+        component="div"
         actions={<UserActions />}
         filters={userFilters}
         sort={{ field: "username", order: "ASC" }}
         perPage={25}
         pagination={<Pagination rowsPerPageOptions={[10, 25, 50, 100]} />}
+        sx={{
+          "& .RaList-actions": {
+            mb: { xs: 1.5, sm: 0 },
+            gap: { xs: 1, sm: 0 },
+            alignItems: { xs: "stretch", sm: "flex-end" },
+            backgroundColor: "transparent",
+          },
+          "& .RaTopToolbar-root": {
+            width: { xs: "100%", sm: "auto" },
+            minHeight: { xs: 40, sm: "auto" },
+            mt: { xs: -1, sm: 0 },
+          },
+          "& .RaListToolbar-root, & .RaTopToolbar-root": {
+            backgroundColor: { xs: "transparent !important", sm: "initial" },
+            boxShadow: { xs: "none", sm: "initial" },
+          },
+          "& .RaFilterButton-root .MuiIconButton-root": {
+            backgroundColor: "transparent",
+          },
+          "& .RaFilterForm-root": {
+            gap: { xs: 1, sm: 0 },
+            paddingBottom: { xs: 0, sm: 0.5 },
+          },
+          "& .RaFilterForm-filterFormInput .MuiFormControl-root": {
+            width: { xs: "100%", sm: "auto" },
+            mt: { xs: 0, sm: 1 },
+          },
+          "& .RaFilterForm-filterFormInput .RaFilterFormInput-spacer": {
+            width: { xs: 0, sm: 16 },
+          },
+          "& .MuiToolbar-root": {
+            backgroundColor: "transparent",
+          },
+        }}
         empty={
           <CustomEmpty
             resourceName="utente"

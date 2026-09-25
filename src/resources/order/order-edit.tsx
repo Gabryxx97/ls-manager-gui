@@ -1,4 +1,11 @@
-import { Edit, SimpleForm, useNotify, usePermissions, useRecordContext, useRedirect } from "react-admin";
+import {
+  Edit,
+  SimpleForm,
+  useNotify,
+  usePermissions,
+  useRecordContext,
+  useRedirect,
+} from "react-admin";
 import { WarehouseOrder } from "../../types";
 import { CustomToolbar } from "../../components/custom-toolbar";
 import { OrderForm } from "./order-form";
@@ -17,6 +24,7 @@ export const OrderEdit = () => {
 
   return (
     <Edit
+      component="div"
       title={<OrderEditTitle />}
       mutationMode="pessimistic"
       transform={sanitizeOrder}
@@ -26,9 +34,14 @@ export const OrderEdit = () => {
           redirect("list", "orders");
         },
         onError: (error) => {
-          notify(error instanceof Error ? error.message : "Impossibile modificare l'ordine", {
-            type: "error",
-          });
+          notify(
+            error instanceof Error
+              ? error.message
+              : "Impossibile modificare l'ordine",
+            {
+              type: "error",
+            },
+          );
         },
       }}
     >
@@ -42,15 +55,22 @@ const OrderEditContent = () => {
   const { permissions } = usePermissions();
   if (!record) return null;
 
-  const structurallyEditable = record.status === "PROCESSING"
-    && !record.takenInChargeAt
-    && permissions !== "WAREHOUSE_ROLE";
+  const structurallyEditable =
+    record.status === "PROCESSING" &&
+    !record.takenInChargeAt &&
+    permissions !== "WAREHOUSE_ROLE";
 
   if (!structurallyEditable) return <OrderWorkflow order={record} />;
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: 12,
+        }}
+      >
         <OrderExportButton order={record} />
       </div>
       <SimpleForm

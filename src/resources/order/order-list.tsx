@@ -1,7 +1,10 @@
 import AddIcon from "@mui/icons-material/Add";
+import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
+import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
 import {
   Box,
   Card,
+  CardActionArea,
   CardActions,
   CardContent,
   Chip,
@@ -39,6 +42,7 @@ import {
 } from "../../types";
 import {
   AssignedWarehouse,
+  MobileWarehouseSelect,
   OrderAssignmentActions,
 } from "./order-assignment-actions";
 
@@ -143,79 +147,127 @@ const OrderRowActions = ({ order }: { order: WarehouseOrder }) => {
 
 const OrderMobileCards = () => {
   const { data = [] } = useListContext<WarehouseOrder>();
+  const { permissions } = usePermissions();
+  const navigate = useNavigate();
 
   return (
     <Stack spacing={1} component="section" aria-label="Elenco ordini">
-      {data.map((order) => (
-        <RecordContextProvider key={order.id} value={order}>
-          <Card component="article" sx={{ overflow: "hidden" }}>
-            <CardContent
+      {data.map((order) => {
+        const canDelete =
+          permissions !== "WAREHOUSE_ROLE" &&
+          !order.takenInChargeAt &&
+          order.status === "PROCESSING";
+        const canClaim =
+          permissions === "WAREHOUSE_ROLE" &&
+          !order.assignedWarehouseId &&
+          order.status === "PROCESSING";
+        return (
+          <RecordContextProvider key={order.id} value={order}>
+            <Card
+              component="article"
+              onClick={() => navigate(`/orders/${order.id}`)}
               sx={{
-                p: 1.5,
-                "&:last-child": { pb: 1.5 },
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+                cursor: "pointer",
               }}
             >
-              <Stack
-                direction="row"
+              <CardActionArea
+                aria-label={`Apri ordine ${order.name}`}
+                sx={{ flexGrow: 1 }}
+              >
+                <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
+                  <Stack
+                    direction="row"
+                    sx={{
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      columnGap: 1,
+                      rowGap: 0.75,
+                    }}
+                  >
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      sx={{ alignItems: "center" }}
+                    >
+                      <CalendarTodayOutlinedIcon
+                        color="action"
+                        sx={{ fontSize: 16 }}
+                        aria-hidden="true"
+                      />
+                      <Typography variant="caption" color="text.secondary">
+                        {formatDate(order.date)}
+                      </Typography>
+                    </Stack>
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={
+                        order.category
+                          ? categoryPresentation[order.category]
+                          : "Senza categoria"
+                      }
+                    />
+                    <Box sx={{ ml: "auto", flexShrink: 0 }}>
+                      <StatusChip status={order.status} />
+                    </Box>
+                  </Stack>
+                  <Typography
+                    component="h2"
+                    variant="subtitle1"
+                    sx={{
+                      mt: 1,
+                      minWidth: 0,
+                      fontWeight: 700,
+                      lineHeight: 1.35,
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {order.name}
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
+              {(canClaim || canDelete) && (
+                <CardActions
+                  onClick={(event) => event.stopPropagation()}
+                  sx={{ justifyContent: "flex-end", px: 1.5, pt: 0, pb: 1.5 }}
+                >
+                  {canClaim && <OrderAssignmentActions order={order} />}
+                  {canDelete && (
+                    <CustomDeleteButton resource="orders" titleField="name" />
+                  )}
+                </CardActions>
+              )}
+              <CardActions
                 sx={{
                   alignItems: "center",
                   flexWrap: "wrap",
-                  columnGap: 1,
-                  rowGap: 0.75,
+                  gap: 1,
+                  px: 1.5,
+                  py: 1,
+                  borderTop: "1px solid",
+                  borderColor: "divider",
+                  backgroundColor: "grey.50",
                 }}
               >
-                <Typography variant="caption" color="text.secondary">
-                  {formatDate(order.date)}
+                <BadgeOutlinedIcon
+                  color="action"
+                  fontSize="small"
+                  aria-hidden="true"
+                />
+                <Typography variant="body2" color="text.secondary">
+                  Magazziniere:
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {order.category
-                    ? categoryPresentation[order.category]
-                    : "Senza categoria"}
-                </Typography>
-                <Box sx={{ ml: "auto", flexShrink: 0 }}>
-                  <StatusChip status={order.status} />
+                <Box sx={{ ml: "auto", minWidth: 0 }}>
+                  <MobileWarehouseSelect order={order} />
                 </Box>
-              </Stack>
-              <Typography
-                component="h2"
-                variant="subtitle1"
-                sx={{
-                  mt: 1,
-                  minWidth: 0,
-                  fontWeight: 700,
-                  lineHeight: 1.35,
-                  overflowWrap: "anywhere",
-                }}
-              >
-                {order.name}
-              </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mt: 0.75 }}
-              >
-                Magazziniere: <AssignedWarehouse order={order} />
-              </Typography>
-            </CardContent>
-            <CardActions
-              sx={{
-                justifyContent: "flex-end",
-                flexWrap: "wrap",
-                gap: 0.5,
-                px: 1.5,
-                py: 1,
-                borderTop: "1px solid",
-                borderColor: "divider",
-                backgroundColor: "grey.50",
-                "& > *": { m: "0 !important" },
-              }}
-            >
-              <OrderAssignmentActions order={order} />
-              <OrderRowActions order={order} />
-            </CardActions>
-          </Card>
-        </RecordContextProvider>
-      ))}
+              </CardActions>
+            </Card>
+          </RecordContextProvider>
+        );
+      })}
     </Stack>
   );
 };
@@ -266,7 +318,7 @@ export const OrderList = () => {
           "& .RaTopToolbar-root": {
             width: { xs: "100%", sm: "auto" },
             minHeight: { xs: 40, sm: "auto" },
-            mt: { xs: -1, sm: 0 },
+            mt: { xs: -2, sm: 0 },
           },
           "& .RaListToolbar-root, & .RaTopToolbar-root": {
             backgroundColor: { xs: "transparent !important", sm: "initial" },

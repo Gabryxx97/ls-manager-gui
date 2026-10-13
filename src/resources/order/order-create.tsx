@@ -21,7 +21,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
-import CheckIcon from "@mui/icons-material/Check";
+import SaveIcon from "@mui/icons-material/Save";
 import {
   Create,
   SaveButton,
@@ -137,15 +137,26 @@ const WizardActions = ({
         spacing={1}
         sx={{ justifyContent: "space-between", alignItems: "center" }}
       >
-        <Button
-          type="button"
-          color="error"
-          startIcon={<CloseIcon />}
-          onClick={onCancel}
-          disabled={isSubmitting}
-        >
-          Annulla
-        </Button>
+        <Tooltip title="Annulla">
+          <span>
+            <IconButton
+              type="button"
+              aria-label="Annulla"
+              onClick={onCancel}
+              disabled={isSubmitting}
+              sx={{
+                width: { xs: 44, sm: 40 },
+                height: { xs: 44, sm: 40 },
+                borderRadius: 1,
+                color: "error.contrastText",
+                bgcolor: "error.main",
+                "&:hover": { bgcolor: "error.dark" },
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </span>
+        </Tooltip>
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <Tooltip title="Indietro">
             <span>
@@ -154,7 +165,11 @@ const WizardActions = ({
                 aria-label="Torna al passaggio precedente"
                 onClick={onBack}
                 disabled={activeStep === 0 || isSubmitting}
-                sx={{ border: "1px solid", borderColor: "divider" }}
+                sx={{
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1,
+                }}
               >
                 <ChevronLeftIcon />
               </IconButton>
@@ -169,6 +184,7 @@ const WizardActions = ({
                 sx={{
                   color: "primary.contrastText",
                   bgcolor: "primary.main",
+                  borderRadius: 1,
                   "&:hover": { bgcolor: "primary.dark" },
                 }}
               >
@@ -176,12 +192,30 @@ const WizardActions = ({
               </IconButton>
             </Tooltip>
           ) : (
-            <SaveButton
-              label="Crea ordine"
-              icon={<CheckIcon />}
-              disabled={isSubmitting}
-              sx={{ minWidth: { sm: 180 } }}
-            />
+            <Tooltip title="Crea ordine">
+              <span>
+                <SaveButton
+                  aria-label="Crea ordine"
+                  label="Crea ordine"
+                  icon={<SaveIcon />}
+                  disabled={isSubmitting}
+                  sx={{
+                    width: { xs: 44, sm: 40 },
+                    height: { xs: 44, sm: 40 },
+                    minWidth: { xs: 44, sm: 40 },
+                    p: 0,
+                    borderRadius: 1,
+                    fontSize: 0,
+                    color: "primary.contrastText",
+                    bgcolor: "primary.main",
+                    "& .MuiSvgIcon-root, & .MuiCircularProgress-root": {
+                      m: 0,
+                    },
+                    "&:hover": { bgcolor: "primary.dark" },
+                  }}
+                />
+              </span>
+            </Tooltip>
           )}
         </Stack>
       </Stack>

@@ -147,7 +147,7 @@ export const OrderDetailsEditor = () => {
             b.article?.sku ?? b.detail?.articleSku ?? "",
           ),
         )
-      : source;
+      : [...source].reverse();
   }, [articleById, details, fields, sorted]);
   const totalPieces = details.reduce(
     (sum, detail) =>
@@ -363,7 +363,6 @@ export const OrderDetailsEditor = () => {
               >
                 {displaySku}
               </Typography>
-              {custom && <Chip size="small" label="Non censito" variant="outlined" />}
             </Stack>
             <Typography
               component="h3"
@@ -394,7 +393,7 @@ export const OrderDetailsEditor = () => {
             <IconButton
               aria-label={`Rimuovi ${displayDescription}`}
               onClick={() => remove(row.index)}
-              color="inherit"
+              color="error"
               size="small"
             >
               <DeleteIcon />
@@ -497,6 +496,7 @@ export const OrderDetailsEditor = () => {
           <IconButton
             aria-label={`Rimuovi ${displayDescription}`}
             onClick={() => remove(row.index)}
+            color="error"
           >
             <DeleteIcon />
           </IconButton>

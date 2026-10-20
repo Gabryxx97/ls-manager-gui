@@ -1,6 +1,8 @@
 import AddIcon from "@mui/icons-material/Add";
+import { registryListSx } from "../../components/registry-styles";
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
+import { alpha } from "@mui/material/styles";
 import {
   Box,
   Card,
@@ -102,7 +104,12 @@ const PriorityChip = ({ priority }: { priority: OrderPriority }) => {
 };
 
 const createOrderFilters = (secondaryFiltersAlwaysOn: boolean) => [
-  <SearchInput key="search" source="search" alwaysOn />,
+  <SearchInput
+    key="search"
+    source="search"
+    placeholder="Cerca ordini..."
+    alwaysOn
+  />,
   <SelectInput
     key="status"
     source="status"
@@ -116,17 +123,27 @@ const mobileOrderFilters = createOrderFilters(false);
 const desktopOrderFilters = createOrderFilters(true);
 
 const OrderActions = () => {
-  const { permissions } = usePermissions();
   return (
-    <TopToolbar sx={{ mt: -3 }}>
-      <FilterButton disableSaveQuery />
-      {permissions !== "WAREHOUSE_ROLE" && (
-        <CreateButton
-          sx={{ display: { xs: "none", sm: "inline-flex" } }}
-          variant="contained"
-          label="Nuovo ordine"
-        />
-      )}
+    <TopToolbar>
+      <Box
+        sx={{
+          "& .add-filter.MuiIconButton-root": {
+            width: 44,
+            height: 44,
+            border: "1px solid",
+            borderColor: (theme) => alpha(theme.palette.primary.main, 0.5),
+            borderRadius: 1,
+            "&:hover": { borderColor: "primary.main" },
+          },
+        }}
+      >
+        <FilterButton disableSaveQuery variant="outlined" />
+      </Box>
+      <CreateButton
+        sx={{ display: { xs: "none", sm: "inline-flex" } }}
+        variant="contained"
+        label="Nuovo ordine"
+      />
     </TopToolbar>
   );
 };
@@ -274,8 +291,6 @@ const OrderMobileCards = () => {
 
 const MobileCreateFab = () => {
   const navigate = useNavigate();
-  const { permissions } = usePermissions();
-  if (permissions === "WAREHOUSE_ROLE") return null;
   return (
     <Fab
       color="primary"
@@ -308,40 +323,7 @@ export const OrderList = () => {
         sort={{ field: "date", order: "DESC" }}
         perPage={25}
         pagination={<Pagination rowsPerPageOptions={[10, 25, 50, 100]} />}
-        sx={{
-          "& .RaList-actions": {
-            mb: { xs: 1.5, sm: 0 },
-            gap: { xs: 1, sm: 0 },
-            alignItems: { xs: "stretch", sm: "flex-end" },
-            backgroundColor: "transparent",
-          },
-          "& .RaTopToolbar-root": {
-            width: { xs: "100%", sm: "auto" },
-            minHeight: { xs: 40, sm: "auto" },
-            mt: { xs: -2, sm: 0 },
-          },
-          "& .RaListToolbar-root, & .RaTopToolbar-root": {
-            backgroundColor: { xs: "transparent !important", sm: "initial" },
-            boxShadow: { xs: "none", sm: "initial" },
-          },
-          "& .RaFilterButton-root .MuiIconButton-root": {
-            backgroundColor: "transparent",
-          },
-          "& .RaFilterForm-root": {
-            gap: { xs: 1, sm: 0 },
-            paddingBottom: { xs: 0, sm: 0.5 },
-          },
-          "& .RaFilterForm-filterFormInput .MuiFormControl-root": {
-            width: { xs: "100%", sm: "auto" },
-            mt: { xs: 0, sm: 1 },
-          },
-          "& .RaFilterForm-filterFormInput .RaFilterFormInput-spacer": {
-            width: { xs: 0, sm: 16 },
-          },
-          "& .MuiToolbar-root": {
-            backgroundColor: "transparent",
-          },
-        }}
+        sx={registryListSx}
         empty={
           <CustomEmpty
             resourceName="ordine"

@@ -1,8 +1,9 @@
+import { registryListSx } from "../../components/registry-styles";
+import { RegistryCard } from "../../components/registry-layout";
 import AddIcon from "@mui/icons-material/Add";
 import {
-  Card,
-  CardActions,
-  CardContent,
+  Avatar,
+  Box,
   Chip,
   Fab,
   Stack,
@@ -44,7 +45,7 @@ const userFilters = [
 ];
 
 const UserActions = () => (
-  <TopToolbar sx={{ mt: -3 }}>
+  <TopToolbar sx={{ display: { xs: "none", sm: "flex" } }}>
     <CreateButton
       sx={{ display: { xs: "none", sm: "inline-flex" } }}
       variant="contained"
@@ -62,76 +63,45 @@ const UserMobileCards = () => {
         const fullName = `${user.name ?? ""} ${user.surname ?? ""}`.trim();
         return (
           <RecordContextProvider key={user.id} value={user}>
-            <Card component="article" sx={{ overflow: "hidden" }}>
-              <CardContent
-                sx={{
-                  p: 1.5,
-                  "&:last-child": { pb: 1.5 },
-                }}
-              >
-                <Stack
-                  direction="row"
-                  sx={{
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    columnGap: 1,
-                    rowGap: 0.75,
-                  }}
-                >
+            <RegistryCard
+              editPath={`/users/${user.id}`}
+              label={`Modifica utente ${user.username}`}
+            >
+              <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
+                <Avatar aria-hidden="true" sx={{ bgcolor: "primary.light", color: "primary.dark", width: 40, height: 40, fontSize: 16 }}>
+                  {(fullName || user.username).split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase()}
+                </Avatar>
+                <Box sx={{ minWidth: 0 }}>
                   <Typography
-                    variant="caption"
-                    className="ls-mono"
-                    color="text.secondary"
-                    sx={{ overflowWrap: "anywhere" }}
+                    component="h2"
+                    variant="subtitle1"
+                    sx={{
+                      minWidth: 0,
+                      fontWeight: 700,
+                      lineHeight: 1.35,
+                      overflowWrap: "anywhere",
+                    }}
                   >
-                    {user.username}
+                    {fullName || user.username}
                   </Typography>
                   <Chip
                     label={roleLabel(user.role)}
                     color="primary"
                     variant="outlined"
-                    sx={{ ml: "auto", flexShrink: 0 }}
+                    sx={{
+                      mt: 0.75,
+                      maxWidth: "100%",
+                      height: "auto",
+                      "& .MuiChip-label": {
+                        py: 0.5,
+                        whiteSpace: "normal",
+                        overflowWrap: "anywhere",
+                      },
+                    }}
                   />
-                </Stack>
-                <Typography
-                  component="h2"
-                  variant="subtitle1"
-                  sx={{
-                    mt: 1,
-                    minWidth: 0,
-                    fontWeight: 700,
-                    lineHeight: 1.35,
-                    overflowWrap: "anywhere",
-                  }}
-                >
-                  {fullName || user.username}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  className="ls-mono"
-                  color="text.secondary"
-                  sx={{ display: "block", mt: 0.75 }}
-                >
-                  ID {user.id}
-                </Typography>
-              </CardContent>
-              <CardActions
-                sx={{
-                  justifyContent: "flex-end",
-                  flexWrap: "wrap",
-                  gap: 0.5,
-                  px: 1.5,
-                  py: 1,
-                  borderTop: "1px solid",
-                  borderColor: "divider",
-                  backgroundColor: "grey.50",
-                  "& > *": { m: "0 !important" },
-                }}
-              >
-                <EditButton label="Modifica" />
-                <CustomDeleteButton resource="users" titleField="username" />
-              </CardActions>
-            </Card>
+                </Box>
+              </Stack>
+            </RegistryCard>
           </RecordContextProvider>
         );
       })}
@@ -150,7 +120,7 @@ const MobileCreateFab = () => {
         display: { xs: "inline-flex", sm: "none" },
         position: "fixed",
         right: 16,
-        bottom: 80,
+        bottom: "calc(80px + env(safe-area-inset-bottom, 0px))",
         zIndex: (theme) => theme.zIndex.speedDial,
       }}
     >
@@ -173,40 +143,7 @@ export const UserList = () => {
         sort={{ field: "username", order: "ASC" }}
         perPage={25}
         pagination={<Pagination rowsPerPageOptions={[10, 25, 50, 100]} />}
-        sx={{
-          "& .RaList-actions": {
-            mb: { xs: 1.5, sm: 0 },
-            gap: { xs: 1, sm: 0 },
-            alignItems: { xs: "stretch", sm: "flex-end" },
-            backgroundColor: "transparent",
-          },
-          "& .RaTopToolbar-root": {
-            width: { xs: "100%", sm: "auto" },
-            minHeight: { xs: 40, sm: "auto" },
-            mt: { xs: -1, sm: 0 },
-          },
-          "& .RaListToolbar-root, & .RaTopToolbar-root": {
-            backgroundColor: { xs: "transparent !important", sm: "initial" },
-            boxShadow: { xs: "none", sm: "initial" },
-          },
-          "& .RaFilterButton-root .MuiIconButton-root": {
-            backgroundColor: "transparent",
-          },
-          "& .RaFilterForm-root": {
-            gap: { xs: 1, sm: 0 },
-            paddingBottom: { xs: 0, sm: 0.5 },
-          },
-          "& .RaFilterForm-filterFormInput .MuiFormControl-root": {
-            width: { xs: "100%", sm: "auto" },
-            mt: { xs: 0, sm: 1 },
-          },
-          "& .RaFilterForm-filterFormInput .RaFilterFormInput-spacer": {
-            width: { xs: 0, sm: 16 },
-          },
-          "& .MuiToolbar-root": {
-            backgroundColor: "transparent",
-          },
-        }}
+        sx={registryListSx}
         empty={
           <CustomEmpty
             resourceName="utente"

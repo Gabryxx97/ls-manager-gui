@@ -11,7 +11,7 @@ import { useFormContext, useFormState, useWatch } from "react-hook-form";
 import { Typography } from "@mui/material";
 import { Article } from "../types";
 
-export const CustomToolbar = ({ disableInvalid = false }: { disableInvalid?: boolean }) => {
+export const CustomToolbar = ({ disableInvalid = false, saveLabel = "Salva ordine" }: { disableInvalid?: boolean; saveLabel?: string }) => {
   const redirect = useRedirect();
   const resource = useResourceContext();
   const { isValid } = useFormState();
@@ -29,7 +29,7 @@ export const CustomToolbar = ({ disableInvalid = false }: { disableInvalid?: boo
   return (
     <Toolbar sx={{ gap: 1, "@media (max-width: 599px)": { position: "fixed", left: 0, right: 0, bottom: "calc(64px + env(safe-area-inset-bottom, 0px))", zIndex: 1300, px: 2, py: 1, bgcolor: "background.paper", boxShadow: "0 -4px 16px rgba(0,0,0,.08)", flexDirection: "column" } }}>
       {resource === "orders" && <Typography sx={{ display: { xs: "block", sm: "none" }, width: "100%", fontSize: 13 }}><strong>{details.length}</strong> {details.length === 1 ? "Articolo" : "Articoli"} · <strong>{details.reduce((sum: number, detail: { quantity?: number }) => sum + Number(detail.quantity ?? 0), 0)}</strong> Pezzi <span style={{ float: "right" }}>Totale: <strong>{total == null ? "—" : `€ ${total.toFixed(2)}`}</strong></span></Typography>}
-      <SaveButton label="Salva ordine" disabled={disableInvalid && !isValid} sx={{ "@media (max-width: 599px)": { width: "100%" } }} />
+      <SaveButton label={saveLabel} disabled={disableInvalid && !isValid} sx={{ "@media (max-width: 599px)": { width: "100%" } }} />
       <Button
         label="Annulla"
         startIcon={<CloseIcon />}

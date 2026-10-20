@@ -1,3 +1,5 @@
+import { RegistryFormLayout } from "../../components/registry-layout";
+import { registryFormSx } from "../../components/registry-styles";
 import { Edit, SimpleForm, useRecordContext } from "react-admin";
 import { CustomToolbar } from "../../components/custom-toolbar";
 import { WorkOrder } from "../../types";
@@ -9,9 +11,11 @@ const WorkOrderEditTitle = () => {
 };
 
 export const WorkOrderEdit = () => (
-  <Edit title={<WorkOrderEditTitle />} mutationMode="pessimistic" redirect="list">
-    <SimpleForm toolbar={<CustomToolbar />}>
-      <WorkOrderForm />
+  <Edit component="div" title={<WorkOrderEditTitle />} mutationMode="pessimistic" redirect="list">
+    <SimpleForm sx={registryFormSx} toolbar={<CustomToolbar saveLabel="Salva modifiche" />}>
+      <RegistryFormLayout title={<WorkOrderEditTitle />} description="Inserisci le informazioni che identificano la commessa.">
+        <WorkOrderForm />
+      </RegistryFormLayout>
     </SimpleForm>
   </Edit>
 );

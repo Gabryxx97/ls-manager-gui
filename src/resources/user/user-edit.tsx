@@ -1,3 +1,5 @@
+import { RegistryFormLayout } from "../../components/registry-layout";
+import { registryFormSx } from "../../components/registry-styles";
 import {
   Edit,
   SimpleForm,
@@ -21,6 +23,7 @@ export const UserEdit = () => {
 
   return (
     <Edit
+      component="div"
       title={<UserEditTitle />}
       mutationMode="pessimistic"
       transform={sanitizeUser}
@@ -36,8 +39,10 @@ export const UserEdit = () => {
         },
       }}
     >
-      <SimpleForm toolbar={<CustomToolbar />} validate={validateUserForm(true)}>
-        <UsersForm isEdit />
+      <SimpleForm sx={registryFormSx} toolbar={<CustomToolbar saveLabel="Salva modifiche" />} validate={validateUserForm(true)}>
+        <RegistryFormLayout title={<UserEditTitle />} description="Gestisci il profilo, il ruolo e le credenziali di accesso.">
+          <UsersForm isEdit />
+        </RegistryFormLayout>
       </SimpleForm>
     </Edit>
   );

@@ -1,3 +1,5 @@
+import { RegistryFormLayout } from "../../components/registry-layout";
+import { registryFormSx } from "../../components/registry-styles";
 import { Create, SimpleForm, useNotify, useRedirect } from "react-admin";
 import { CustomToolbar } from "../../components/custom-toolbar";
 import { UsersForm } from "./user-form";
@@ -9,6 +11,7 @@ export const UserCreate = () => {
 
   return (
     <Create
+      component="div"
       title="Nuovo utente"
       transform={sanitizeUser}
       mutationOptions={{
@@ -23,8 +26,10 @@ export const UserCreate = () => {
         },
       }}
     >
-      <SimpleForm toolbar={<CustomToolbar />} validate={validateUserForm(false)}>
-        <UsersForm />
+      <SimpleForm sx={registryFormSx} toolbar={<CustomToolbar saveLabel="Crea utente" />} validate={validateUserForm(false)}>
+        <RegistryFormLayout title="Nuovo utente" description="Gestisci il profilo, il ruolo e le credenziali di accesso.">
+          <UsersForm />
+        </RegistryFormLayout>
       </SimpleForm>
     </Create>
   );

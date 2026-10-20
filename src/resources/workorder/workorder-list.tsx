@@ -1,8 +1,7 @@
+import { registryListSx } from "../../components/registry-styles";
+import { RegistryCard } from "../../components/registry-layout";
 import AddIcon from "@mui/icons-material/Add";
 import {
-  Card,
-  CardActions,
-  CardContent,
   Fab,
   Stack,
   Typography,
@@ -40,7 +39,7 @@ const Actions = () => {
   const { permissions } = usePermissions();
   if (permissions !== "ADMIN_ROLE") return null;
   return (
-    <TopToolbar sx={{ mt: -3 }}>
+    <TopToolbar sx={{ display: { xs: "none", sm: "flex" } }}>
       <CreateButton
         sx={{ display: { xs: "none", sm: "inline-flex" } }}
         variant="contained"
@@ -58,59 +57,34 @@ const MobileCards = () => {
     <Stack spacing={1} component="section" aria-label="Elenco commesse">
       {data.map((workOrder) => (
         <RecordContextProvider key={workOrder.id} value={workOrder}>
-          <Card component="article" sx={{ overflow: "hidden" }}>
-            <CardContent
+          <RegistryCard
+            editPath={canManage ? `/workorders/${workOrder.id}` : undefined}
+            label={`Modifica commessa ${workOrder.name}`}
+            >
+            <Typography
+              component="h2"
+              variant="subtitle1"
               sx={{
-                p: 1.5,
-                "&:last-child": { pb: 1.5 },
+                minWidth: 0,
+                fontWeight: 700,
+                lineHeight: 1.35,
+                overflowWrap: "anywhere",
               }}
             >
-              <Typography
-                component="h2"
-                variant="subtitle1"
-                sx={{
-                  minWidth: 0,
-                  fontWeight: 700,
-                  lineHeight: 1.35,
-                  overflowWrap: "anywhere",
-                }}
-              >
-                {workOrder.name}
-              </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{
-                  mt: 0.75,
-                  whiteSpace: "pre-wrap",
-                  overflowWrap: "anywhere",
-                }}
-              >
-                {workOrder.description || "Nessuna descrizione"}
-              </Typography>
-            </CardContent>
-            <CardActions
+              {workOrder.name}
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
               sx={{
-                justifyContent: "flex-end",
-                flexWrap: "wrap",
-                gap: 0.5,
-                px: 1.5,
-                py: 1,
-                borderTop: "1px solid",
-                borderColor: "divider",
-                backgroundColor: "grey.50",
-                "& > *": { m: "0 !important" },
+                mt: 0.75,
+                whiteSpace: "pre-wrap",
+                overflowWrap: "anywhere",
               }}
             >
-              {canManage && <EditButton label="Modifica" />}
-              {canManage && (
-                <CustomDeleteButton
-                  resource="workorders"
-                  titleField="name"
-                />
-              )}
-            </CardActions>
-          </Card>
+              {workOrder.description || "Nessuna descrizione"}
+            </Typography>
+          </RegistryCard>
         </RecordContextProvider>
       ))}
     </Stack>
@@ -130,7 +104,7 @@ const MobileCreateFab = () => {
         display: { xs: "inline-flex", sm: "none" },
         position: "fixed",
         right: 16,
-        bottom: 80,
+        bottom: "calc(80px + env(safe-area-inset-bottom, 0px))",
         zIndex: (theme) => theme.zIndex.speedDial,
       }}
     >
@@ -154,40 +128,7 @@ export const WorkOrderList = () => {
         sort={{ field: "name", order: "ASC" }}
         perPage={25}
         pagination={<Pagination rowsPerPageOptions={[10, 25, 50, 100]} />}
-        sx={{
-          "& .RaList-actions": {
-            mb: { xs: 1.5, sm: 0 },
-            gap: { xs: 1, sm: 0 },
-            alignItems: { xs: "stretch", sm: "flex-end" },
-            backgroundColor: "transparent",
-          },
-          "& .RaTopToolbar-root": {
-            width: { xs: "100%", sm: "auto" },
-            minHeight: { xs: 40, sm: "auto" },
-            mt: { xs: -1, sm: 0 },
-          },
-          "& .RaListToolbar-root, & .RaTopToolbar-root": {
-            backgroundColor: { xs: "transparent !important", sm: "initial" },
-            boxShadow: { xs: "none", sm: "initial" },
-          },
-          "& .RaFilterButton-root .MuiIconButton-root": {
-            backgroundColor: "transparent",
-          },
-          "& .RaFilterForm-root": {
-            gap: { xs: 1, sm: 0 },
-            paddingBottom: { xs: 0, sm: 0.5 },
-          },
-          "& .RaFilterForm-filterFormInput .MuiFormControl-root": {
-            width: { xs: "100%", sm: "auto" },
-            mt: { xs: 0, sm: 1 },
-          },
-          "& .RaFilterForm-filterFormInput .RaFilterFormInput-spacer": {
-            width: { xs: 0, sm: 16 },
-          },
-          "& .MuiToolbar-root": {
-            backgroundColor: "transparent",
-          },
-        }}
+        sx={registryListSx}
         empty={
           <CustomEmpty
             resourceName="commessa"

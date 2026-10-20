@@ -19,6 +19,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { ChangeEvent, useRef, useState } from "react";
@@ -325,9 +326,16 @@ export const ArticleImportButton = () => {
 
   return (
     <>
-      <Button startIcon={<UploadFileIcon />} variant="outlined" onClick={() => setOpen(true)}>
-        Importa CSV
-      </Button>
+      <Tooltip title="Importa CSV">
+        <Button
+          aria-label="Importa CSV"
+          variant="outlined"
+          onClick={() => setOpen(true)}
+          sx={{ minWidth: { xs: 44, sm: 40 }, px: 1 }}
+        >
+          <UploadFileIcon />
+        </Button>
+      </Tooltip>
       <Dialog open={open} onClose={close} fullWidth maxWidth="md" aria-labelledby="article-import-title">
         <DialogTitle id="article-import-title">Importa articoli da CSV</DialogTitle>
         <DialogContent>

@@ -1,8 +1,9 @@
+import { registryListSx } from "../../components/registry-styles";
+import { RegistryCard } from "../../components/registry-layout";
 import AddIcon from "@mui/icons-material/Add";
 import {
-  Card,
-  CardActions,
-  CardContent,
+  Box,
+  Chip,
   Fab,
   Stack,
   Typography,
@@ -42,7 +43,7 @@ const ArticleActions = () => {
   const { permissions } = usePermissions();
   if (permissions !== "ADMIN_ROLE") return null;
   return (
-    <TopToolbar sx={{ mt: -3 }}>
+    <TopToolbar>
       <ArticleImportButton />
       <CreateButton
         sx={{ display: { xs: "none", sm: "inline-flex" } }}
@@ -62,96 +63,65 @@ const ArticleMobileCards = () => {
     <Stack spacing={1} component="section" aria-label="Elenco articoli">
       {data.map((article) => (
         <RecordContextProvider key={article.id} value={article}>
-          <Card component="article" sx={{ overflow: "hidden" }}>
-            <CardContent
-              sx={{
-                p: 1.5,
-                "&:last-child": { pb: 1.5 },
-              }}
+          <RegistryCard
+            editPath={canManage ? `/articles/${article.id}` : undefined}
+            label={`Modifica articolo ${article.sku}`}
             >
-              <Stack
-                direction="row"
-                sx={{
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  columnGap: 1,
-                  rowGap: 0.75,
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  className="ls-mono"
-                  color="primary"
-                >
-                  {article.sku}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {article.category || "Senza categoria"}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {article.costCenter || "Senza centro di costo"}
-                </Typography>
-              </Stack>
-              <Typography
-                component="h2"
-                variant="subtitle1"
-                sx={{
-                  mt: 1,
-                  minWidth: 0,
-                  fontWeight: 700,
-                  lineHeight: 1.35,
-                  overflowWrap: "anywhere",
-                }}
-              >
-                {article.description}
-              </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{
-                  mt: 0.75,
-                  whiteSpace: "pre-wrap",
-                  overflowWrap: "anywhere",
-                }}
-              >
-                Ubicazione: {article.location || "—"} · Giacenza:{" "}
-                {article.stockQuantity == null
-                  ? "—"
-                  : `${article.stockQuantity} ${article.unitOfMeasure || ""}`.trim()}
-              </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mt: 0.5 }}
-              >
-                Prezzo:{" "}
-                {article.unitPrice == null
-                  ? "—"
-                  : `€ ${Number(article.unitPrice).toFixed(2)}`}
-              </Typography>
-            </CardContent>
-            <CardActions
+            <Stack
+              direction="row"
               sx={{
-                justifyContent: "flex-end",
+                alignItems: "center",
                 flexWrap: "wrap",
-                gap: 0.5,
-                px: 1.5,
-                py: 1,
-                borderTop: "1px solid",
-                borderColor: "divider",
-                backgroundColor: "grey.50",
-                "& > *": { m: "0 !important" },
+                columnGap: 1,
+                rowGap: 0.75,
               }}
             >
-              {canManage && <EditButton label="Modifica" />}
-              {canManage && (
-                <CustomDeleteButton
-                  resource="articles"
-                  titleField="description"
-                />
-              )}
-            </CardActions>
-          </Card>
+              <Typography
+                variant="caption"
+                className="ls-mono"
+                color="primary"
+                sx={{ overflowWrap: "anywhere" }}
+              >
+                {article.sku}
+              </Typography>
+              <Chip variant="outlined" label={article.category || "Senza categoria"} sx={{ maxWidth: "100%", height: "auto", "& .MuiChip-label": { py: 0.5, whiteSpace: "normal", overflowWrap: "anywhere" } }} />
+              <Typography variant="caption" color="text.secondary" sx={{ width: "100%", overflowWrap: "anywhere" }}>
+                Centro di costo: {article.costCenter || "—"}
+              </Typography>
+            </Stack>
+            <Typography
+              component="h2"
+              variant="subtitle1"
+              sx={{
+                mt: 1,
+                minWidth: 0,
+                fontWeight: 700,
+                lineHeight: 1.35,
+                overflowWrap: "anywhere",
+              }}
+            >
+              {article.description}
+            </Typography>
+
+            <Box sx={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 1.5, mt: 1.5, pt: 1.5, borderTop: "1px solid", borderColor: "divider" }}>
+              <Box sx={{ gridColumn: "1 / -1", minWidth: 0 }}>
+                <Typography variant="caption" color="text.secondary">Ubicazione</Typography>
+                <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>{article.location || "—"}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Giacenza</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, overflowWrap: "anywhere" }}>
+                  {article.stockQuantity == null ? "—" : [article.stockQuantity, article.unitOfMeasure].filter(value => value != null && value !== "").join(" ")}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Prezzo unitario</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {article.unitPrice == null ? "—" : new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(Number(article.unitPrice))}
+                </Typography>
+              </Box>
+            </Box>
+          </RegistryCard>
         </RecordContextProvider>
       ))}
     </Stack>
@@ -172,7 +142,7 @@ const MobileCreateFab = () => {
         display: { xs: "inline-flex", sm: "none" },
         position: "fixed",
         right: 16,
-        bottom: 80,
+        bottom: "calc(80px + env(safe-area-inset-bottom, 0px))",
         zIndex: (theme) => theme.zIndex.speedDial,
       }}
     >
@@ -197,40 +167,7 @@ export const ArticleList = () => {
         sort={{ field: "sku", order: "ASC" }}
         perPage={25}
         pagination={<Pagination rowsPerPageOptions={[10, 25, 50, 100]} />}
-        sx={{
-          "& .RaList-actions": {
-            mb: { xs: 1.5, sm: 0 },
-            gap: { xs: 1, sm: 0 },
-            alignItems: { xs: "stretch", sm: "flex-end" },
-            backgroundColor: "transparent",
-          },
-          "& .RaTopToolbar-root": {
-            width: { xs: "100%", sm: "auto" },
-            minHeight: { xs: 40, sm: "auto" },
-            mt: { xs: -1, sm: 0 },
-          },
-          "& .RaListToolbar-root, & .RaTopToolbar-root": {
-            backgroundColor: { xs: "transparent !important", sm: "initial" },
-            boxShadow: { xs: "none", sm: "initial" },
-          },
-          "& .RaFilterButton-root .MuiIconButton-root": {
-            backgroundColor: "transparent",
-          },
-          "& .RaFilterForm-root": {
-            gap: { xs: 1, sm: 0 },
-            paddingBottom: { xs: 0, sm: 0.5 },
-          },
-          "& .RaFilterForm-filterFormInput .MuiFormControl-root": {
-            width: { xs: "100%", sm: "auto" },
-            mt: { xs: 0, sm: 1 },
-          },
-          "& .RaFilterForm-filterFormInput .RaFilterFormInput-spacer": {
-            width: { xs: 0, sm: 16 },
-          },
-          "& .MuiToolbar-root": {
-            backgroundColor: "transparent",
-          },
-        }}
+        sx={registryListSx}
         empty={
           <CustomEmpty
             resourceName="articolo"

@@ -22,6 +22,13 @@ export type OrderFormData = {
 export const formatMoney = (value: number | string | null | undefined) =>
   value == null ? "—" : `€ ${Number(value).toFixed(2)}`;
 
+export const isValidOptionalPrice = (value: number | string | null | undefined) => {
+  if (value == null || String(value).trim() === "") return true;
+  const price = Number(value);
+  return /^\d+(?:\.\d{1,2})?$/.test(String(value))
+    && Number.isFinite(price) && price >= 0 && price <= 9999999999.99;
+};
+
 export const dateWithOffset = (days: number) => {
   const date = new Date();
   date.setDate(date.getDate() + days);
@@ -41,7 +48,8 @@ export const sanitizeOrder = (data: OrderFormData) => ({
         articleDescription: detail.articleDescription?.trim(),
         articleSku: detail.articleSku?.trim() || null,
         unitOfMeasure: detail.unitOfMeasure?.trim() || null,
-        unitPrice: detail.unitPrice,
+        unitPrice: detail.unitPrice == null || String(detail.unitPrice).trim() === ""
+          ? null : Number(detail.unitPrice),
       }),
 });
 
@@ -79,10 +87,7 @@ export const validateOrderForm = (values: FieldValues, minimumDate?: string) => 
       if (!detail.articleDescription?.trim()) {
         detailErrors.articleDescription = "La descrizione è obbligatoria";
       }
-      const price = detail.unitPrice === "" || detail.unitPrice == null
-        ? Number.NaN
-        : Number(detail.unitPrice);
-      if (!Number.isFinite(price) || price < 0 || !/^\d+(?:\.\d{1,2})?$/.test(String(detail.unitPrice))) {
+      if (!isValidOptionalPrice(detail.unitPrice)) {
         detailErrors.unitPrice = "Inserisci un prezzo valido con massimo due decimali";
       }
     }

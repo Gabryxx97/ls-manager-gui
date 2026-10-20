@@ -56,7 +56,7 @@ import {
   useWatch,
 } from "react-hook-form";
 import { Article, WarehouseOrder, WorkOrder } from "../../types";
-import { formatMoney, OrderFormData, OrderFormDetail } from "./order-form-utils";
+import { formatMoney, isValidOptionalPrice, OrderFormData, OrderFormDetail } from "./order-form-utils";
 
 const categoryChoices = [
   { id: "HYDRAULIC", name: "Idrico" },
@@ -110,9 +110,7 @@ export const OrderDetailsEditor = () => {
     articleId?: number;
     unitPrice?: number | string | null;
   }) =>
-    detail.unitPrice == null
-      ? priceOf(articleById.get(detail.articleId ?? -1))
-      : Number(detail.unitPrice);
+    detail.unitPrice == null ? undefined : Number(detail.unitPrice);
   const [query, setQuery] = useState("");
   const [customDialogOpen, setCustomDialogOpen] = useState(false);
   const [customEditIndex, setCustomEditIndex] = useState<number | null>(null);
@@ -163,7 +161,6 @@ export const OrderDetailsEditor = () => {
     : undefined;
 
   const addArticle = (article: Article) => {
-    if (priceOf(article) == null) return;
     const existing = details.findIndex(
       (detail) => detail?.articleId === article.id,
     );
@@ -176,7 +173,7 @@ export const OrderDetailsEditor = () => {
       append({
         articleId: article.id,
         quantity: 1,
-        unitPrice: priceOf(article),
+        unitPrice: priceOf(article) ?? null,
       });
     setQuery("");
   };
@@ -210,16 +207,13 @@ export const OrderDetailsEditor = () => {
     });
     setCustomDialogOpen(true);
   };
-  const customPrice = Number(customDraft.unitPrice);
+  const customPrice = customDraft.unitPrice.trim() === "" ? null : Number(customDraft.unitPrice);
   const customQuantity = Number(customDraft.quantity);
   const customDraftValid = customDraft.description.trim().length > 0
     && customDraft.description.trim().length <= 2000
     && customDraft.sku.trim().length <= 64
     && customDraft.unitOfMeasure.trim().length <= 16
-    && /^\d+(?:\.\d{1,2})?$/.test(customDraft.unitPrice)
-    && Number.isFinite(customPrice)
-    && customPrice >= 0
-    && customPrice <= 9999999999.99
+    && isValidOptionalPrice(customDraft.unitPrice)
     && Number.isInteger(customQuantity)
     && customQuantity > 0;
   const saveCustomArticle = () => {
@@ -296,7 +290,6 @@ export const OrderDetailsEditor = () => {
           key={article.id}
           component="button"
           type="button"
-          disabled={priceOf(article) == null}
           onClick={() => addArticle(article)}
           sx={{
             display: "block",
@@ -305,8 +298,7 @@ export const OrderDetailsEditor = () => {
             border: 0,
             background: "transparent",
             p: 1.5,
-            cursor: priceOf(article) == null ? "not-allowed" : "pointer",
-            opacity: priceOf(article) == null ? 0.55 : 1,
+            cursor: "pointer",
             "&:hover": { backgroundColor: "action.hover" },
           }}
         >
@@ -627,13 +619,12 @@ export const OrderDetailsEditor = () => {
             </Stack>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <TextField
-                required
-                label="Prezzo unitario"
+                label="Prezzo unitario (facoltativo)"
                 type="number"
                 value={customDraft.unitPrice}
                 onChange={(event) => setCustomDraft((value) => ({ ...value, unitPrice: event.target.value }))}
                 slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
-                error={customDraft.unitPrice.length > 0 && (!/^\d+(?:\.\d{1,2})?$/.test(customDraft.unitPrice) || customPrice < 0 || customPrice > 9999999999.99)}
+                error={!isValidOptionalPrice(customDraft.unitPrice)}
                 helperText="Importo in euro, massimo due decimali"
                 fullWidth
               />
@@ -865,12 +856,12 @@ export const OrderReview = ({ onEdit }: { onEdit: (step: number) => void }) => {
     0,
   );
   const total = details.every((detail) =>
-    (detail?.unitPrice ?? articleById.get(detail?.articleId ?? -1)?.unitPrice) != null,
+    detail?.unitPrice != null,
   )
     ? details.reduce(
         (sum, detail) =>
           sum
-          + Number(detail?.unitPrice ?? articleById.get(detail?.articleId ?? -1)?.unitPrice)
+          + Number(detail?.unitPrice)
             * Number(detail?.quantity ?? 0),
         0,
       )
@@ -920,7 +911,7 @@ export const OrderReview = ({ onEdit }: { onEdit: (step: number) => void }) => {
             const article = articleById.get(detail?.articleId ?? -1);
             const sku = article?.sku || detail?.articleSku || "NON CENSITO";
             const description = article?.description || detail?.articleDescription || "Articolo non disponibile";
-            const unitPrice = detail?.unitPrice ?? article?.unitPrice;
+            const unitPrice = detail?.unitPrice;
             const quantity = Number(detail?.quantity ?? 0);
             return (
               <Stack

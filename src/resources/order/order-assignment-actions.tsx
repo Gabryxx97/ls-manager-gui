@@ -37,7 +37,7 @@ export const AssignedWarehouse = ({ order }: { order: WarehouseOrder }) => (
   </Typography>
 );
 
-export const MobileWarehouseSelect = ({ order }: { order: WarehouseOrder }) => {
+export const WarehouseAssignmentSelect = ({ order }: { order: WarehouseOrder }) => {
   const { permissions } = usePermissions();
   const notify = useNotify();
   const refresh = useRefresh();

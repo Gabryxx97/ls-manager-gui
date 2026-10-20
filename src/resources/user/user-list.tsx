@@ -29,11 +29,12 @@ import { CustomDeleteButton } from "../../components/custom-delete-button";
 import { CustomEmpty } from "../../components/custom-empty";
 import { User } from "../../types";
 
-const roleLabel = (role: string) => ({
-  ADMIN_ROLE: "Amministratore",
-  OPERATOR_ROLE: "Operatore",
-  WAREHOUSE_ROLE: "Magazziniere",
-}[role] ?? role);
+const roleLabel = (role: string) =>
+  ({
+    ADMIN_ROLE: "Amministratore",
+    OPERATOR_ROLE: "Operatore",
+    WAREHOUSE_ROLE: "Magazziniere",
+  })[role] ?? role;
 
 const userFilters = [
   <SearchInput
@@ -67,9 +68,27 @@ const UserMobileCards = () => {
               editPath={`/users/${user.id}`}
               label={`Modifica utente ${user.username}`}
             >
-              <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
-                <Avatar aria-hidden="true" sx={{ bgcolor: "primary.light", color: "primary.dark", width: 40, height: 40, fontSize: 16 }}>
-                  {(fullName || user.username).split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase()}
+              <Stack
+                direction="row"
+                spacing={1.25}
+                sx={{ alignItems: "center" }}
+              >
+                <Avatar
+                  aria-hidden="true"
+                  sx={{
+                    bgcolor: "primary.light",
+                    color: "primary.dark",
+                    width: 40,
+                    height: 40,
+                    fontSize: 16,
+                  }}
+                >
+                  {(fullName || user.username)
+                    .split(/\s+/)
+                    .slice(0, 2)
+                    .map((part) => part[0])
+                    .join("")
+                    .toUpperCase()}
                 </Avatar>
                 <Box sx={{ minWidth: 0 }}>
                   <Typography
@@ -157,10 +176,9 @@ export const UserList = () => {
           <UserMobileCards />
         ) : (
           <Datagrid bulkActionButtons={false} rowClick={false}>
-            <TextField source="id" label="ID" sortable />
+            <TextField source="username" label="Username" sortable />
             <TextField source="name" label="Nome" sortable />
             <TextField source="surname" label="Cognome" sortable />
-            <TextField source="username" label="Username" sortable />
             <FunctionField<User>
               source="role"
               label="Ruolo"

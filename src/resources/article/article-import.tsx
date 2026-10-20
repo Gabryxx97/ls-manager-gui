@@ -21,6 +21,8 @@ import {
   TableRow,
   Tooltip,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { ChangeEvent, useRef, useState } from "react";
 import { useNotify, useRefresh } from "react-admin";
@@ -106,7 +108,8 @@ const parseCsv = (text: string): CsvRow[] => {
     }
 
     if (character === '"') {
-      if (cell.length > 0) throw new Error(`Virgolette non valide alla riga ${rowNumber}`);
+      if (cell.length > 0)
+        throw new Error(`Virgolette non valide alla riga ${rowNumber}`);
       quoted = true;
     } else if (character === ",") {
       cells.push(cell);
@@ -120,7 +123,8 @@ const parseCsv = (text: string): CsvRow[] => {
     }
   }
 
-  if (quoted) throw new Error(`Campo tra virgolette non chiuso alla riga ${rowStart}`);
+  if (quoted)
+    throw new Error(`Campo tra virgolette non chiuso alla riga ${rowStart}`);
   if (cell.length > 0 || cells.length > 0) finishRow();
   return rows;
 };
@@ -135,23 +139,43 @@ const readCsv = async (file: File): Promise<ParsedFile> => {
 
   let text: string;
   try {
-    text = new TextDecoder("utf-8", { fatal: true }).decode(await file.arrayBuffer());
+    text = new TextDecoder("utf-8", { fatal: true }).decode(
+      await file.arrayBuffer(),
+    );
   } catch {
     throw new Error("Il file non contiene testo UTF-8 leggibile");
   }
 
   const rows = parseCsv(text.replace(/^\uFEFF/, ""));
-  const nonEmptyRows = rows.filter((row) => row.cells.some((cell) => cell.trim() !== ""));
+  const nonEmptyRows = rows.filter((row) =>
+    row.cells.some((cell) => cell.trim() !== ""),
+  );
   if (nonEmptyRows.length === 0) throw new Error("Il file CSV è vuoto");
 
-  const header = nonEmptyRows[0].cells.map((cell) => cell.trim().toLocaleLowerCase());
-  const expectedHeader = ["sku", "description", "category", "costcenter", "unitofmeasure", "location", "stockquantity"];
-  if (header.length !== expectedHeader.length || header.some((cell, index) => cell !== expectedHeader[index])) {
-    throw new Error("Le intestazioni richieste sono sku,description,category,costCenter,unitOfMeasure,location,stockQuantity (in questo ordine)");
+  const header = nonEmptyRows[0].cells.map((cell) =>
+    cell.trim().toLocaleLowerCase(),
+  );
+  const expectedHeader = [
+    "sku",
+    "description",
+    "category",
+    "costcenter",
+    "unitofmeasure",
+    "location",
+    "stockquantity",
+  ];
+  if (
+    header.length !== expectedHeader.length ||
+    header.some((cell, index) => cell !== expectedHeader[index])
+  ) {
+    throw new Error(
+      "Le intestazioni richieste sono sku,description,category,costCenter,unitOfMeasure,location,stockQuantity (in questo ordine)",
+    );
   }
 
   const dataRows = nonEmptyRows.slice(1);
-  if (dataRows.length > MAX_ROWS) throw new Error("Il file contiene più di 5.000 righe dati");
+  if (dataRows.length > MAX_ROWS)
+    throw new Error("Il file contiene più di 5.000 righe dati");
 
   const items: ImportItem[] = [];
   const errors: ImportError[] = [];
@@ -173,9 +197,15 @@ const readCsv = async (file: File): Promise<ParsedFile> => {
     const location = row.cells[5].trim().replace(/\s+/g, " ");
     const quantityRaw = row.cells[6].trim();
     const quantityText = quantityRaw.replace(",", ".");
-    const stockQuantity = quantityText === "" ? undefined : Number(quantityText);
+    const stockQuantity =
+      quantityText === "" ? undefined : Number(quantityText);
     if (!sku || sku.length > 64) {
-      errors.push({ rowNumber: row.rowNumber, field: "sku", message: "Lo SKU è obbligatorio e non può superare 64 caratteri", source: "client" });
+      errors.push({
+        rowNumber: row.rowNumber,
+        field: "sku",
+        message: "Lo SKU è obbligatorio e non può superare 64 caratteri",
+        source: "client",
+      });
       continue;
     }
     if (!description) {
@@ -195,11 +225,22 @@ const readCsv = async (file: File): Promise<ParsedFile> => {
     ] as const;
     const invalidText = oversized.find(([, value, max]) => value.length > max);
     if (invalidText) {
-      errors.push({ rowNumber: row.rowNumber, field: invalidText[0], message: `Il campo non può superare ${invalidText[2]} caratteri`, source: "client" });
+      errors.push({
+        rowNumber: row.rowNumber,
+        field: invalidText[0],
+        message: `Il campo non può superare ${invalidText[2]} caratteri`,
+        source: "client",
+      });
       continue;
     }
     if (quantityRaw && !/^-?\d{1,12}(?:[.,]\d{1,2})?$/.test(quantityRaw)) {
-      errors.push({ rowNumber: row.rowNumber, field: "stockQuantity", message: "La giacenza deve essere un numero con massimo 12 cifre intere e due decimali", source: "client" });
+      errors.push({
+        rowNumber: row.rowNumber,
+        field: "stockQuantity",
+        message:
+          "La giacenza deve essere un numero con massimo 12 cifre intere e due decimali",
+        source: "client",
+      });
       continue;
     }
     items.push({
@@ -227,12 +268,17 @@ const resultText = (result: ImportResult) => {
   ];
   if (result.importedItems.length) {
     lines.push("", "Righe importate:");
-    result.importedItems.forEach((item) => lines.push(`- Riga ${item.rowNumber}: ${item.sku} — ${item.description}`));
+    result.importedItems.forEach((item) =>
+      lines.push(`- Riga ${item.rowNumber}: ${item.sku} — ${item.description}`),
+    );
   }
   if (result.errors.length) {
     lines.push("", "Errori:");
     result.errors.forEach((error) => {
-      const row = error.rowNumber == null ? "Riga sconosciuta" : `Riga ${error.rowNumber}`;
+      const row =
+        error.rowNumber == null
+          ? "Riga sconosciuta"
+          : `Riga ${error.rowNumber}`;
       const field = error.field ? `, campo ${error.field}` : "";
       lines.push(`- ${row}${field}: ${error.message}`);
     });
@@ -241,6 +287,8 @@ const resultText = (result: ImportResult) => {
 };
 
 export const ArticleImportButton = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const fileInput = useRef<HTMLInputElement>(null);
   const notify = useNotify();
   const refresh = useRefresh();
@@ -271,7 +319,9 @@ export const ArticleImportButton = () => {
     try {
       setParsed(await readCsv(file));
     } catch (error) {
-      setFileError(error instanceof Error ? error.message : "Impossibile leggere il file");
+      setFileError(
+        error instanceof Error ? error.message : "Impossibile leggere il file",
+      );
     }
   };
 
@@ -279,26 +329,41 @@ export const ArticleImportButton = () => {
     if (!parsed || parsed.items.length === 0) return;
     setLoading(true);
     try {
-      const { json } = await httpRequest<ImportResponse>(`${apiUrl}/articles/import`, {
-        method: "POST",
-        body: JSON.stringify({ items: parsed.items }),
-      });
-      const serverErrors = json.errors.map((error) => ({ ...error, source: "server" as const }));
+      const { json } = await httpRequest<ImportResponse>(
+        `${apiUrl}/articles/import`,
+        {
+          method: "POST",
+          body: JSON.stringify({ items: parsed.items }),
+        },
+      );
+      const serverErrors = json.errors.map((error) => ({
+        ...error,
+        source: "server" as const,
+      }));
       const errors = [...parsed.errors, ...serverErrors];
-      const failedServerRows = new Set(serverErrors.map((error) => error.rowNumber));
+      const failedServerRows = new Set(
+        serverErrors.map((error) => error.rowNumber),
+      );
       setResult({
         fileName: parsed.fileName,
         totalRows: parsed.totalRows,
         created: json.created,
         updated: json.updated,
         failed: parsed.errors.length + json.failed,
-        importedItems: parsed.items.filter((item) => !failedServerRows.has(item.rowNumber)),
+        importedItems: parsed.items.filter(
+          (item) => !failedServerRows.has(item.rowNumber),
+        ),
         errors,
       });
       refresh();
-      notify(`${json.created} articoli creati, ${json.updated} aggiornati`, { type: json.failed ? "warning" : "success" });
+      notify(`${json.created} articoli creati, ${json.updated} aggiornati`, {
+        type: json.failed ? "warning" : "success",
+      });
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Importazione non riuscita", { type: "error" });
+      notify(
+        error instanceof Error ? error.message : "Importazione non riuscita",
+        { type: "error" },
+      );
     } finally {
       setLoading(false);
     }
@@ -316,7 +381,9 @@ export const ArticleImportButton = () => {
 
   const downloadResult = () => {
     if (!result) return;
-    const url = URL.createObjectURL(new Blob([resultText(result)], { type: "text/plain;charset=utf-8" }));
+    const url = URL.createObjectURL(
+      new Blob([resultText(result)], { type: "text/plain;charset=utf-8" }),
+    );
     const link = document.createElement("a");
     link.href = url;
     link.download = `import-articoli-${new Date().toISOString().slice(0, 10)}.txt`;
@@ -336,14 +403,44 @@ export const ArticleImportButton = () => {
           <UploadFileIcon />
         </Button>
       </Tooltip>
-      <Dialog open={open} onClose={close} fullWidth maxWidth="md" aria-labelledby="article-import-title">
-        <DialogTitle id="article-import-title">Importa articoli da CSV</DialogTitle>
-        <DialogContent>
+      <Dialog
+        open={open}
+        onClose={close}
+        fullWidth
+        maxWidth="md"
+        fullScreen={isMobile}
+        aria-labelledby="article-import-title"
+        PaperProps={{ sx: { borderRadius: { xs: 0, sm: 2 } } }}
+      >
+        <DialogTitle
+          id="article-import-title"
+          sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 2.5 } }}
+        >
+          Importa articoli da CSV
+        </DialogTitle>
+        <DialogContent sx={{ px: { xs: 2, sm: 3 }, pb: 2 }}>
           {!result && (
-            <Stack spacing={2}>
-              <Typography color="text.secondary">
-                File UTF-8 fino a 5 MB e 5.000 righe, con intestazioni <code>sku,description,category,costCenter,unitOfMeasure,location,stockQuantity</code>.
+            <Stack spacing={{ xs: 1.5, sm: 2 }}>
+              <Typography color="text.secondary" variant="body2">
+                File UTF-8 fino a 5 MB e 5.000 righe. Le intestazioni richieste
+                sono:
               </Typography>
+              <Box sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1 }}>
+                <Stack spacing={0.25}>
+                  {"sku,description,category,costCenter,unitOfMeasure,location,stockQuantity"
+                    .split(",")
+                    .map((field) => (
+                      <Typography
+                        key={field}
+                        component="code"
+                        variant="body2"
+                        sx={{ fontSize: "0.78rem" }}
+                      >
+                        {field}
+                      </Typography>
+                    ))}
+                </Stack>
+              </Box>
               <Box>
                 <input
                   ref={fileInput}
@@ -352,7 +449,12 @@ export const ArticleImportButton = () => {
                   accept=".csv,text/csv"
                   onChange={selectFile}
                 />
-                <Button variant="contained" startIcon={<UploadFileIcon />} onClick={() => fileInput.current?.click()}>
+                <Button
+                  fullWidth={isMobile}
+                  variant="contained"
+                  startIcon={<UploadFileIcon />}
+                  onClick={() => fileInput.current?.click()}
+                >
                   Seleziona file CSV
                 </Button>
               </Box>
@@ -361,28 +463,60 @@ export const ArticleImportButton = () => {
                 <>
                   <Divider />
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                    <Typography><strong>{parsed.fileName}</strong></Typography>
+                    <Typography sx={{ overflowWrap: "anywhere" }}>
+                      <strong>{parsed.fileName}</strong>
+                    </Typography>
                     <Typography color="text.secondary">
-                      {parsed.totalRows} righe · {parsed.items.length} valide · {parsed.errors.length} scartate
+                      {parsed.totalRows} righe · {parsed.items.length} valide ·{" "}
+                      {parsed.errors.length} scartate
                     </Typography>
                   </Stack>
                   {parsed.items.length === 0 && (
-                    <Alert severity="warning">Non ci sono righe valide da importare.</Alert>
+                    <Alert severity="warning">
+                      Non ci sono righe valide da importare.
+                    </Alert>
                   )}
                   {parsed.errors.length > 0 && (
                     <Alert severity="warning">
-                      Le righe non valide saranno escluse. Controlla il riepilogo sotto l’anteprima.
+                      Le righe non valide saranno escluse. Controlla il
+                      riepilogo sotto l’anteprima.
                     </Alert>
                   )}
                   {parsed.items.length > 0 && (
-                    <TableContainer component={Paper} sx={{ maxHeight: 360 }}>
-                      <Table stickyHeader size="small" aria-label="Anteprima articoli da importare">
-                        <TableHead><TableRow><TableCell>Riga</TableCell><TableCell>SKU</TableCell><TableCell>Descrizione</TableCell><TableCell>Categoria</TableCell><TableCell>Centro di costo</TableCell><TableCell>U.M.</TableCell><TableCell>Ubicazione</TableCell><TableCell>Giacenza</TableCell></TableRow></TableHead>
+                    <TableContainer
+                      component={Paper}
+                      sx={{
+                        maxHeight: { xs: "40vh", sm: 360 },
+                        overflowX: "auto",
+                      }}
+                    >
+                      <Table
+                        stickyHeader
+                        size="small"
+                        aria-label="Anteprima articoli da importare"
+                        sx={{ minWidth: 850 }}
+                      >
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Riga</TableCell>
+                            <TableCell>SKU</TableCell>
+                            <TableCell>Descrizione</TableCell>
+                            <TableCell>Categoria</TableCell>
+                            <TableCell>Centro di costo</TableCell>
+                            <TableCell>U.M.</TableCell>
+                            <TableCell>Ubicazione</TableCell>
+                            <TableCell>Giacenza</TableCell>
+                          </TableRow>
+                        </TableHead>
                         <TableBody>
                           {parsed.items.slice(0, PREVIEW_ROWS).map((item) => (
                             <TableRow key={item.rowNumber}>
-                              <TableCell className="ls-mono">{item.rowNumber}</TableCell>
-                              <TableCell className="ls-mono">{item.sku}</TableCell>
+                              <TableCell className="ls-mono">
+                                {item.rowNumber}
+                              </TableCell>
+                              <TableCell className="ls-mono">
+                                {item.sku}
+                              </TableCell>
                               <TableCell>{item.description}</TableCell>
                               <TableCell>{item.category || "—"}</TableCell>
                               <TableCell>{item.costCenter || "—"}</TableCell>
@@ -401,10 +535,19 @@ export const ArticleImportButton = () => {
                     </Typography>
                   )}
                   {parsed.errors.length > 0 && (
-                    <Box component="section" aria-label="Errori rilevati nel file">
-                      <Typography variant="h3" sx={{ mb: 1 }}>Righe scartate</Typography>
+                    <Box
+                      component="section"
+                      aria-label="Errori rilevati nel file"
+                    >
+                      <Typography variant="h3" sx={{ mb: 1 }}>
+                        Righe scartate
+                      </Typography>
                       {parsed.errors.slice(0, PREVIEW_ROWS).map((error) => (
-                        <Typography key={`${error.rowNumber}-${error.field}`} variant="body2" color="error">
+                        <Typography
+                          key={`${error.rowNumber}-${error.field}`}
+                          variant="body2"
+                          color="error"
+                        >
                           Riga {error.rowNumber}: {error.message}
                         </Typography>
                       ))}
@@ -417,31 +560,61 @@ export const ArticleImportButton = () => {
           {result && (
             <Stack spacing={2}>
               <Alert severity={result.failed ? "warning" : "success"}>
-                Importazione conclusa: {result.created} articoli creati, {result.updated} aggiornati e {result.failed} righe scartate.
+                Importazione conclusa: {result.created} articoli creati,{" "}
+                {result.updated} aggiornati e {result.failed} righe scartate.
               </Alert>
               <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography component="pre" sx={{ m: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                <Typography
+                  component="pre"
+                  sx={{
+                    m: 0,
+                    whiteSpace: "pre-wrap",
+                    overflowWrap: "anywhere",
+                  }}
+                >
                   {resultText(result)}
                 </Typography>
               </Paper>
             </Stack>
           )}
         </DialogContent>
-        <DialogActions>
+        <DialogActions
+          sx={{
+            px: { xs: 2, sm: 3 },
+            py: { xs: 1.5, sm: 2 },
+            gap: 1,
+            flexDirection: { xs: "column-reverse", sm: "row" },
+            alignItems: "stretch",
+            "& > :not(style) ~ :not(style)": { ml: { xs: 0, sm: 1 } },
+            "& .MuiButton-root": { width: { xs: "100%", sm: "auto" } },
+          }}
+        >
           {result ? (
             <>
-              <Button startIcon={<ContentCopyIcon />} onClick={copyResult}>Copia</Button>
-              <Button startIcon={<DownloadIcon />} onClick={downloadResult}>Scarica</Button>
-              <Button variant="contained" onClick={close}>Chiudi</Button>
+              <Button startIcon={<ContentCopyIcon />} onClick={copyResult}>
+                Copia
+              </Button>
+              <Button startIcon={<DownloadIcon />} onClick={downloadResult}>
+                Scarica
+              </Button>
+              <Button variant="contained" onClick={close}>
+                Chiudi
+              </Button>
             </>
           ) : (
             <>
-              <Button onClick={close} disabled={loading}>Annulla</Button>
+              <Button variant="outlined" onClick={close} disabled={loading}>
+                Annulla
+              </Button>
               <Button
                 variant="contained"
                 onClick={importArticles}
                 disabled={!parsed?.items.length || loading}
-                startIcon={loading ? <CircularProgress color="inherit" size={18} /> : undefined}
+                startIcon={
+                  loading ? (
+                    <CircularProgress color="inherit" size={18} />
+                  ) : undefined
+                }
               >
                 {loading ? "Importazione…" : "Conferma importazione"}
               </Button>

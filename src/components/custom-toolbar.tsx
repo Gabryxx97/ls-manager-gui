@@ -5,11 +5,9 @@ import {
   Toolbar,
   useRedirect,
   useResourceContext,
-  useGetMany,
 } from "react-admin";
 import { useFormContext, useFormState, useWatch } from "react-hook-form";
 import { Typography } from "@mui/material";
-import { Article } from "../types";
 
 export const CustomToolbar = ({ disableInvalid = false, saveLabel = "Salva ordine" }: { disableInvalid?: boolean; saveLabel?: string }) => {
   const redirect = useRedirect();
@@ -17,13 +15,8 @@ export const CustomToolbar = ({ disableInvalid = false, saveLabel = "Salva ordin
   const { isValid } = useFormState();
   const { control } = useFormContext();
   const details = useWatch({ control, name: "details" }) ?? [];
-  const ids = details
-    .map((detail: { articleId?: number | null }) => detail.articleId)
-    .filter((id: number | null | undefined): id is number => id != null);
-  const { data: articles = [] } = useGetMany<Article>("articles", { ids }, { enabled: resource === "orders" && ids.length > 0 });
-  const byId = new Map(articles.map((article) => [article.id, article]));
-  const total = details.every((detail: { articleId?: number; quantity?: number; unitPrice?: number | string | null }) => (detail.unitPrice ?? byId.get(detail.articleId ?? -1)?.unitPrice) != null)
-    ? details.reduce((sum: number, detail: { articleId?: number; quantity?: number; unitPrice?: number | string | null }) => sum + Number(detail.unitPrice ?? byId.get(detail.articleId ?? -1)?.unitPrice ?? 0) * Number(detail.quantity ?? 0), 0)
+  const total = details.every((detail: { articleId?: number; quantity?: number; unitPrice?: number | string | null }) => detail.unitPrice != null)
+    ? details.reduce((sum: number, detail: { articleId?: number; quantity?: number; unitPrice?: number | string | null }) => sum + Number(detail.unitPrice) * Number(detail.quantity ?? 0), 0)
     : undefined;
 
   return (

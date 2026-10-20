@@ -44,8 +44,8 @@ import {
 } from "../../types";
 import {
   AssignedWarehouse,
-  MobileWarehouseSelect,
   OrderAssignmentActions,
+  WarehouseAssignmentSelect,
 } from "./order-assignment-actions";
 
 const statusChoices = [
@@ -278,7 +278,7 @@ const OrderMobileCards = () => {
                   Magazziniere:
                 </Typography>
                 <Box sx={{ ml: "auto", minWidth: 0 }}>
-                  <MobileWarehouseSelect order={order} />
+                  <WarehouseAssignmentSelect order={order} />
                 </Box>
               </CardActions>
             </Card>
@@ -306,6 +306,21 @@ const MobileCreateFab = () => {
     >
       <AddIcon />
     </Fab>
+  );
+};
+
+const AssignmentCell = ({ order }: { order: WarehouseOrder }) => {
+  const { permissions } = usePermissions();
+
+  if (permissions === "ADMIN_ROLE") {
+    return <WarehouseAssignmentSelect order={order} />;
+  }
+
+  return (
+    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <AssignedWarehouse order={order} />
+      <OrderAssignmentActions order={order} />
+    </Stack>
   );
 };
 
@@ -337,7 +352,7 @@ export const OrderList = () => {
           <OrderMobileCards />
         ) : (
           <Datagrid bulkActionButtons={false} rowClick={false}>
-            <TextField source="name" label="Nome" sortable />
+            <TextField source="name" label="Commessa" sortable />
             <FunctionField<WarehouseOrder>
               source="date"
               label="Data"
@@ -358,14 +373,9 @@ export const OrderList = () => {
             />
             <FunctionField<WarehouseOrder>
               label="Magazziniere"
-              render={(record) => <AssignedWarehouse order={record} />}
+              render={(record) => <AssignmentCell order={record} />}
             />
             <FunctionField<WarehouseOrder>
-              label="Presa in carico"
-              render={(record) => <OrderAssignmentActions order={record} />}
-            />
-            <FunctionField<WarehouseOrder>
-              label="Azioni"
               render={(record) => <OrderRowActions order={record} />}
             />
           </Datagrid>

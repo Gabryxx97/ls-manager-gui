@@ -11,6 +11,12 @@ type AuthUser = {
   companyName?: string;
 };
 
+const clearAuth = () => {
+  for (const key of ["auth", "role", "fullName"]) {
+    localStorage.removeItem(key);
+  }
+};
+
 const authProvider: AuthProvider = {
   login: async ({ username, password }) => {
     await httpRequest(`${apiUrl}/login`, {
@@ -29,19 +35,31 @@ const authProvider: AuthProvider = {
   logout: async () => {
     try {
       await httpRequest(`${apiUrl}/logout`, { method: "POST" }, false);
+    } catch {
+      // React Admin redirects only when logout resolves, even if the session
+      // has already expired or the server cannot be reached.
     } finally {
-      localStorage.clear();
+      clearAuth();
     }
   },
 
-  checkAuth: () => {
-    // Se non ho user in storage, vuol dire che non sono loggato
-    return localStorage.getItem("auth") ? Promise.resolve() : Promise.reject();
+  checkAuth: async () => {
+    if (!localStorage.getItem("auth")) throw new Error("Autenticazione richiesta");
+
+    try {
+      // Cookies are HttpOnly: only the API can validate or refresh the session.
+      await httpRequest<AuthUser>(`${apiUrl}/me`);
+    } catch (error) {
+      if (error instanceof Error && "status" in error && error.status === 401) {
+        clearAuth();
+      }
+      throw error;
+    }
   },
 
   checkError: (error) => {
     if (error.status === 401) {
-      localStorage.clear();
+      clearAuth();
       return Promise.reject();
     }
     return Promise.resolve();

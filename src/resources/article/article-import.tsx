@@ -410,7 +410,7 @@ export const ArticleImportButton = () => {
         maxWidth="md"
         fullScreen={isMobile}
         aria-labelledby="article-import-title"
-        PaperProps={{ sx: { borderRadius: { xs: 0, sm: 2 } } }}
+        slotProps={{ paper: { sx: { borderRadius: { xs: 0, sm: 2 } } } }}
       >
         <DialogTitle
           id="article-import-title"
